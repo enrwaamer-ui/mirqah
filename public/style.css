@@ -1,0 +1,291 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #f5f7f4;
+    color: #263238;
+}
+
+/* =========================
+   صفحة تسجيل الدخول
+========================= */
+
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 430px;
+    background: white;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+}
+
+.logo {
+    text-align: center;
+    font-size: 42px;
+    font-weight: bold;
+    color: #596b55;
+}
+
+.slogan {
+    text-align: center;
+    margin-top: 10px;
+    margin-bottom: 35px;
+    color: #777;
+    line-height: 1.6;
+}
+
+.login-card h2 {
+    margin-bottom: 25px;
+}
+
+.login-card label {
+    display: block;
+    margin-bottom: 8px;
+    margin-top: 18px;
+}
+
+.login-card input {
+    width: 100%;
+    padding: 13px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    font-size: 15px;
+}
+
+.login-card button {
+    width: 100%;
+    margin-top: 25px;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: #596b55;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.login-card button:hover {
+    opacity: 0.9;
+}
+
+#loginMessage {
+    margin-top: 15px;
+    text-align: center;
+}
+
+/* =========================
+   الشريط العلوي
+========================= */
+
+.topbar {
+    background: white;
+    padding: 18px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.logo-small {
+    font-size: 28px;
+    font-weight: bold;
+    color: #596b55;
+}
+
+.topbar button {
+    border: none;
+    background: #eee;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* =========================
+   الصفحات
+========================= */
+
+.dashboard {
+    width: 100%;
+    max-width: 1100px;
+    margin: auto;
+    padding: 30px 20px;
+}
+
+/* =========================
+   الترحيب
+========================= */
+
+.welcome-card {
+    background: white;
+    padding: 30px;
+    border-radius: 18px;
+    margin-bottom: 25px;
+}
+
+.welcome-card h1 {
+    margin-bottom: 10px;
+}
+
+/* =========================
+   البطاقات
+========================= */
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+}
+
+.dashboard-card {
+    background: white;
+    padding: 25px;
+    border-radius: 18px;
+    text-align: center;
+}
+
+.dashboard-card p {
+    font-size: 30px;
+    font-weight: bold;
+    margin-top: 15px;
+}
+
+/* =========================
+   الأقسام
+========================= */
+
+.dashboard-section {
+    background: white;
+    padding: 25px;
+    border-radius: 18px;
+    margin-top: 25px;
+}
+
+/* =========================
+   الروابط السريعة
+========================= */
+
+.quick-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.quick-links a {
+    text-decoration: none;
+    background: #596b55;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 10px;
+}
+
+/* =========================
+   الملف الشخصي
+========================= */
+
+.profile-card {
+    background: white;
+    padding: 30px;
+    border-radius: 18px;
+    margin-top: 25px;
+}
+
+.profile-info h2 {
+    margin-bottom: 25px;
+}
+
+.profile-info p {
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+}
+
+/* =========================
+   الموبايل
+========================= */
+
+@media (max-width: 700px) {
+
+    .dashboard {
+        padding: 20px 15px;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .dashboard-card {
+        padding: 18px;
+    }
+
+    .dashboard-card p {
+        font-size: 26px;
+    }
+
+    .welcome-card {
+        padding: 22px;
+    }
+
+    .dashboard-section {
+        padding: 20px;
+    }
+
+    .login-card {
+        padding: 25px;
+    }
+
+    .topbar {
+        padding: 15px;
+    }
+
+    .logo-small {
+        font-size: 24px;
+    }
+
+    .quick-links a {
+        flex: 1 1 100%;
+        text-align: center;
+    }
+    .profile-card {
+        padding: 20px;
+    }
+}
+
+/* =========================
+   الهواتف الصغيرة جدًا
+========================= */
+
+@media (max-width: 400px) {
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-card {
+        padding: 20px;
+    }
+
+    .welcome-card h1 {
+        font-size: 22px;
+    }
+
+    .login-card {
+        padding: 20px;
+    }
+
+    .logo {
+        font-size: 36px;
+    }
+}

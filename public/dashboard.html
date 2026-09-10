@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>مِرقاة - الرئيسية</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- الشريط العلوي -->
+    <header class="topbar">
+
+        <div class="logo-small">
+            مِرقاة
+        </div>
+
+        <button onclick="logout()">
+            تسجيل الخروج
+        </button>
+
+    </header>
+
+
+    <main class="dashboard">
+
+        <!-- الترحيب -->
+        <section class="welcome-card">
+
+            <h1>
+                مرحباً، <span id="studentName"></span> 👋
+            </h1>
+
+            <p>
+                خلينا نرتبوا يومك الدراسي.
+            </p>
+
+        </section>
+
+
+        <!-- المحاضرة القادمة -->
+        <section class="dashboard-card next-lecture-card">
+
+            <h2>
+                🔔 المحاضرة القادمة
+            </h2>
+
+            <div id="nextLecture">
+
+                <p>
+                    جاري تحميل المحاضرة القادمة...
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <!-- الإحصائيات -->
+        <section class="dashboard-grid">
+
+            <div class="dashboard-card">
+
+                <h3>
+                    📚 المواد
+                </h3>
+
+                <p id="subjectsCount">
+                    0
+                </p>
+
+            </div>
+
+
+            <div class="dashboard-card">
+
+                <h3>
+                    🎓 المحاضرات
+                </h3>
+
+                <p id="lecturesCount">
+                    0
+                </p>
+
+            </div>
+
+
+            <div class="dashboard-card">
+
+                <h3>
+                    📝 الامتحانات
+                </h3>
+
+                <p id="examsCount">
+                    0
+                </p>
+
+            </div>
+
+
+            <div class="dashboard-card">
+
+                <h3>
+                    🔔 الإشعارات
+                </h3>
+
+                <p id="notificationsCount">
+                    0
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <!-- الروابط السريعة -->
+        <section class="dashboard-section">
+
+            <h2>
+                روابط سريعة
+            </h2>
+
+            <div class="quick-links">
+
+                <a href="subjects.html">
+                    📚 المواد
+                </a>
+
+                <a href="lectures.html">
+                    🎓 المحاضرات
+                </a>
+
+                <a href="exams.html">
+                    📝 الامتحانات
+                </a>
+
+                <a href="notifications.html">
+                    🔔 الإشعارات
+                    <span id="notificationCount"></span>
+                </a>
+
+                <a href="profile.html">
+                    👤 الملف الشخصي
+                </a>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script src="dashboard.js"></script>
+
+</body>
+
+</html>

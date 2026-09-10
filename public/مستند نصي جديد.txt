@@ -1,0 +1,91 @@
+const forgotPasswordForm =
+    document.getElementById("forgotPasswordForm");
+
+
+forgotPasswordForm.addEventListener(
+    "submit",
+    async function (event) {
+
+        event.preventDefault();
+
+
+        const email =
+            document.getElementById("email").value;
+
+        const newPassword =
+            document.getElementById("newPassword").value;
+
+        const confirmPassword =
+            document.getElementById("confirmPassword").value;
+
+        const message =
+            document.getElementById("forgotMessage");
+
+
+        if (newPassword !== confirmPassword) {
+
+            message.textContent =
+                "كلمتا المرور غير متطابقتين";
+
+            return;
+        }
+
+
+        try {
+
+            const response = await fetch(
+                "/students/reset-password",
+                {
+                    method: "PUT",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        email: email,
+                        newPassword: newPassword
+                    })
+                }
+            );
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                message.textContent =
+                    data.error;
+
+                return;
+            }
+
+
+            message.textContent =
+                "تم تغيير كلمة المرور بنجاح ✅";
+
+
+            forgotPasswordForm.reset();
+
+
+            setTimeout(function () {
+
+                window.location.href =
+                    "index.html";
+
+            }, 1500);
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            message.textContent =
+                "حدث خطأ في الاتصال بالسيرفر";
+
+        }
+
+    }
+);
