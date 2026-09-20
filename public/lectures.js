@@ -16,6 +16,53 @@ if (!studentData) {
         document.getElementById("lecturesList");
 
 
+    // =========================
+    // تنسيق التاريخ
+    // =========================
+    function formatDate(dateValue) {
+
+        if (!dateValue) {
+            return "غير محدد";
+        }
+
+        const date = new Date(dateValue);
+
+        if (isNaN(date.getTime())) {
+            return "غير محدد";
+        }
+
+        return date.toLocaleDateString("ar-LY", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric"
+        });
+    }
+
+
+    // =========================
+    // تنسيق الوقت
+    // =========================
+    function formatTime(timeValue) {
+
+        if (!timeValue) {
+            return "غير محدد";
+        }
+
+        const match =
+            String(timeValue).match(/^(\d{2}):(\d{2})/);
+
+        if (match) {
+            return `${match[1]}:${match[2]}`;
+        }
+
+        return timeValue;
+    }
+
+
+    // =========================
+    // تحميل المحاضرات
+    // =========================
     fetch(`/lectures?student_id=${student.id}`)
 
         .then(response => response.json())
@@ -25,7 +72,7 @@ if (!studentData) {
             lecturesList.innerHTML = "";
 
 
-            if (lectures.length === 0) {
+            if (!Array.isArray(lectures) || lectures.length === 0) {
 
                 lecturesList.innerHTML =
                     "<p>مافيش محاضرات حالياً.</p>";
@@ -48,35 +95,59 @@ if (!studentData) {
                     "20px";
 
 
+                const lectureDate =
+                    formatDate(lecture.lecture_date);
+
+
+                const startTime =
+                    formatTime(lecture.start_time);
+
+
+                const endTime =
+                    formatTime(lecture.end_time);
+
+
+                const hall =
+                    lecture.hall ||
+                    lecture.room ||
+                    "غير محددة";
+
+
+                const subjectName =
+                    lecture.subject_name ||
+                    lecture.subject_display_name ||
+                    "غير محددة";
+
+
                 card.innerHTML = `
 
                     <h3>
-                        ${lecture.title}
+                        🎓 ${lecture.title || "محاضرة"}
                     </h3>
 
                     <p>
                         📅 التاريخ:
-                        ${lecture.lecture_date}
+                        ${lectureDate}
                     </p>
 
                     <p>
                         🕐 الوقت:
-                        ${lecture.start_time}
+                        ${startTime}
                         -
-                        ${lecture.end_time}
+                        ${endTime}
                     </p>
 
                     <p>
                         📍 القاعة:
-                        ${lecture.room}
+                        ${hall}
                     </p>
 
                     <p>
                         📚 المادة:
-                        ${lecture.subject_name}
-                    </p>`
+                        ${subjectName}
+                    </p>
 
-                ;
+                `;
 
 
                 lecturesList.appendChild(card);
