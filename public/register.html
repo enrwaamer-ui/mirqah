@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+        <!DOCTYPE html>
 
 <html lang="ar" dir="rtl">
 
@@ -91,14 +91,6 @@
                 required
             >
 
-            <label>رقم القيد</label>
-            <input
-                type="text"
-                id="seat_number"
-                placeholder="أدخل رقم القيد"
-                required
-            >
-
             <button type="submit">
                 إنشاء الحساب
             </button>
@@ -133,7 +125,6 @@
         const major = document.getElementById("major").value.trim();
         const university = document.getElementById("university").value.trim();
         const academic_year = document.getElementById("academic_year").value;
-        const seat_number = document.getElementById("seat_number").value.trim();
 
         message.textContent = "جاري إنشاء الحساب...";
 
@@ -151,8 +142,7 @@
                     password: password,
                     major: major,
                     university: university,
-                    academic_year: academic_year,
-                    seat_number: seat_number
+                    academic_year: academic_year
                 })
             });
 
@@ -162,25 +152,5 @@
                 message.textContent = data.error || "حدث خطأ أثناء إنشاء الحساب";
                 return;
             }
-
-            message.textContent = "تم إنشاء الحساب بنجاح ✅";
-
-            document.getElementById("registerForm").reset();
-
-            setTimeout(function () {
-                window.location.href = "index.html";
-            }, 1500);
-
-        } catch (error) {
-
-            console.error("Registration error:", error);
-
-            message.textContent = "حدث خطأ في الاتصال بالسيرفر";
-        }
-    });
-</script>
 ```
-
-</body>
-
-</html>
+   
