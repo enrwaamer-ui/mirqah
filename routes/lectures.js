@@ -18,7 +18,7 @@ router.get("/", async (req, res) => {
                 lectures.lecture_date,
                 lectures.start_time,
                 lectures.end_time,
-                lectures.room
+                lectures.hall
              FROM public.lectures
              JOIN public.subjects
                 ON lectures.subject_id = subjects.id
@@ -44,7 +44,6 @@ router.get("/", async (req, res) => {
 
 
 // المحاضرة القادمة للطالب
-// مهم: لازم تكون قبل /:id
 router.get("/next", async (req, res) => {
     try {
         const { student_id } = req.query;
@@ -56,7 +55,7 @@ router.get("/next", async (req, res) => {
                 lectures.lecture_date,
                 lectures.start_time,
                 lectures.end_time,
-                lectures.room,
+                lectures.hall,
                 subjects.name AS subject_name
              FROM public.lectures
              JOIN public.subjects
@@ -132,22 +131,22 @@ router.post("/", async (req, res) => {
             lecture_date,
             start_time,
             end_time,
-            room
+            hall
         } = req.body;
 
         const result = await db.query(
             `INSERT INTO public.lectures
-            (subject_id, title, lecture_date, start_time, end_time, room)
+            (subject_id, title, lecture_date, start_time, end_time, hall)
             VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING *,
+            RETURNING *`,
             [
                 subject_id,
                 title,
                 lecture_date,
                 start_time,
                 end_time,
-                room
-            ]`
+                hall
+            ]
         );
 
         res.status(201).json(result.rows[0]);
@@ -160,6 +159,9 @@ router.post("/", async (req, res) => {
         });
     }
 });
+
+
+
 // تعديل محاضرة
 router.put("/:id", async (req, res) => {
     try {
@@ -171,17 +173,17 @@ router.put("/:id", async (req, res) => {
             lecture_date,
             start_time,
             end_time,
-            room
+            hall
         } = req.body;
 
         const result = await db.query(
-           ` UPDATE public.lectures
+            `UPDATE public.lectures
              SET subject_id = $1,
                  title = $2,
                  lecture_date = $3,
                  start_time = $4,
                  end_time = $5,
-                 room = $6
+                 hall = $6
              WHERE id = $7
              RETURNING *`,
             [
@@ -190,7 +192,7 @@ router.put("/:id", async (req, res) => {
                 lecture_date,
                 start_time,
                 end_time,
-                room,
+                hall,
                 id
             ]
         );
