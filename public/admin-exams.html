@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>إدارة الامتحانات - مِرقاة</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            color: #222;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1100px;
+            margin: 30px auto;
+        }
+
+        .header {
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .header h1 {
+            margin: 0 0 8px;
+        }
+
+        .header p {
+            margin: 0;
+            color: #666;
+        }
+
+        .card {
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .card h2 {
+            margin-top: 0;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .field label {
+            margin-bottom: 7px;
+            font-weight: bold;
+        }
+
+        .field input,
+        .field select {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            width: 100%;
+        }
+
+        .button-container {
+            margin-top: 20px;
+        }
+
+        button {
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .add-btn {
+            background: #198754;
+            color: white;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            padding: 8px 14px;
+        }
+
+        .message {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .success {
+            display: block;
+            background: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .error {
+            display: block;
+            background: #f8d7da;
+            color: #842029;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 700px;
+        }
+
+        th,
+        td {
+            padding: 13px;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+        }
+
+        th {
+            background: #f1f3f5;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 25px;
+            color: #777;
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin-top: 10px;
+            text-decoration: none;
+            background: #6c757d;
+            color: white;
+            padding: 10px 18px;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 700px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                width: 92%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>📚 إدارة الامتحانات</h1>
+        <p>إضافة وحذف امتحانات المواد</p>
+
+        <a href="dashboard.html" class="back-btn">
+            العودة للوحة التحكم
+        </a>
+    </div>
+
+
+    <!-- إضافة امتحان -->
+    <div class="card">
+
+        <h2>➕ إضافة امتحان جديد</h2>
+
+        <div class="form-grid">
+
+            <div class="field">
+                <label for="subject">المادة</label>
+
+                <select id="subject">
+                    <option value="">جاري تحميل المواد...</option>
+                </select>
+            </div>
+
+
+            <div class="field">
+                <label for="examDate">تاريخ الامتحان</label>
+
+                <input
+                    type="date"
+                    id="examDate"
+                >
+            </div>
+
+
+            <div class="field">
+                <label for="startTime">وقت الامتحان</label>
+
+                <input
+                    type="time"
+                    id="startTime"
+                >
+            </div>
+
+
+            <div class="field">
+                <label for="hall">القاعة</label>
+
+                <input
+                    type="text"
+                    id="hall"
+                    placeholder="مثال: قاعة 101"
+                >
+            </div>
+
+        </div>
+
+
+        <div class="button-container">
+
+            <button
+                class="add-btn"
+                onclick="addExam()"
+            >
+                إضافة الامتحان
+            </button>
+
+        </div>
+
+
+        <div id="message" class="message"></div>
+
+    </div>
+
+
+    <!-- قائمة الامتحانات -->
+    <div class="card">
+
+        <h2>📋 الامتحانات الموجودة</h2>
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>المادة</th>
+                        <th>التاريخ</th>
+                        <th>الوقت</th>
+                        <th>القاعة</th>
+                        <th>حذف</th>
+                    </tr>
+                </thead>
+
+                <tbody id="examsTable">
+
+                    <tr>
+                        <td
+                            colspan="5"
+                            class="empty"
+                        >
+                            جاري تحميل الامتحانات...
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+    const subjectSelect = document.getElementById("subject");
+    const examsTable = document.getElementById("examsTable");
+    const message = document.getElementById("message");
+
+
+    // =====================================
+    // إظهار رسالة
+    // =====================================
+
+    function showMessage(text, type) {
+
+        message.textContent = text;
+
+        message.className = "message " + type;
+
+        setTimeout(() => {
+
+            message.className = "message";
+
+        }, 4000);
+    }
+
+
+    // =====================================
+    // تحميل المواد
+    // =====================================
+
+    async function loadSubjects() {
+
+        try {
+
+            const response = await fetch("/subjects");
+
+            if (!response.ok) {
+
+                throw new Error("فشل تحميل المواد");
+
+            }
+
+            const subjects = await response.json();
+
+
+            subjectSelect.innerHTML =
+                '<option value="">اختاري المادة</option>';
+
+
+            if (subjects.length === 0) {
+
+                subjectSelect.innerHTML =
+                    '<option value="">لا توجد مواد</option>';
+
+                return;
+            }
+
+
+            subjects.forEach(subject => {
+
+                const option = document.createElement("option");
+
+                option.value = subject.id;
+
+                option.textContent =
+                    subject.name +
+                    (subject.code ? " - " + subject.code : "");
+
+                subjectSelect.appendChild(option);
+
+            });
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            subjectSelect.innerHTML =
+                '<option value="">حدث خطأ في تحميل المواد</option>';
+
+        }
+
+    }
+
+
+    // =====================================
+    // تحميل الامتحانات
+    // =====================================
+
+    async function loadExams() {
+
+        try {
+
+            const response = await fetch("/exams");
+
+            if (!response.ok) {
+
+                throw new Error("فشل تحميل الامتحانات");
+
+            }
+
+            const exams = await response.json();
+
+
+            examsTable.innerHTML = "";
+
+
+            if (exams.length === 0) {
+
+                examsTable.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty">
+                            لا توجد امتحانات حالياً
+                        </td>
+                    </tr>
+                `;
+
+                return;
+            }
+
+
+            exams.forEach(exam => {
+
+                const row = document.createElement("tr");
+
+
+                const date = exam.exam_date
+                    ? new Date(exam.exam_date).toLocaleDateString("ar-LY")
+                    : "-";
+
+
+                row.innerHTML = `
+
+                    <td>
+                        ${exam.subject_display_name || exam.subject_name || "-"}
+                    </td>
+
+                    <td>
+                        ${date}
+                    </td>
+
+                    <td>
+                        ${exam.start_time || "-"}
+                    </td>
+
+                    <td>
+                        ${exam.hall || "-"}
+                    </td>
+
+                    <td>
+
+                        <button
+                            class="delete-btn"
+                            onclick="deleteExam(${exam.id})"
+                        >
+                            حذف
+                        </button>
+
+                    </td>
+
+                `;
+
+
+                examsTable.appendChild(row);
+
+            });
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            examsTable.innerHTML = `
+                <tr>
+                    <td colspan="5" class="empty">
+                        حدث خطأ أثناء تحميل الامتحانات
+                    </td>
+                </tr>
+            `;
+
+        }
+
+    }
+
+
+    // =====================================
+    // إضافة امتحان
+    // =====================================
+
+    async function addExam() {
+
+        const subjectId =
+            subjectSelect.value;
+
+        const examDate =
+            document.getElementById("examDate").value;
+
+        const startTime =
+            document.getElementById("startTime").value;
+
+        const hall =
+            document.getElementById("hall").value.trim();
+
+
+        if (!subjectId) {
+
+            showMessage(
+                "اختاري المادة أولاً",
+                "error"
+            );
+
+            return;
+        }
+
+
+        if (!examDate) {
+
+            showMessage(
+                "اختاري تاريخ الامتحان",
+                "error"
+            );
+
+            return;
+        }
+
+
+        if (!startTime) {
+
+            showMessage(
+                "اختاري وقت الامتحان",
+                "error"
+            );
+
+            return;
+        }
+
+
+        if (!hall) {
+
+            showMessage(
+                "اكتبي القاعة",
+                "error"
+            );
+
+            return;
+        }
+
+
+        try {
+
+            const response = await fetch("/exams", {
+
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+
+                    subject_id: Number(subjectId),
+
+                    exam_date: examDate,
+
+                    start_time: startTime,
+
+                    hall: hall
+
+                })
+
+            });
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data.error ||
+                    "فشل إضافة الامتحان"
+                );
+
+            }
+
+
+            showMessage(
+                "تمت إضافة الامتحان بنجاح ✅",
+                "success"
+            );
+
+
+            // تنظيف الحقول
+
+            subjectSelect.value = "";
+
+            document.getElementById("examDate").value = "";
+
+            document.getElementById("startTime").value = "";
+
+            document.getElementById("hall").value = "";
+
+
+            // إعادة تحميل القائمة
+
+            loadExams();
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            showMessage(
+                error.message ||
+                "حدث خطأ أثناء إضافة الامتحان",
+                "error"
+            );
+
+        }
+
+    }
+
+
+    // =====================================
+    // حذف امتحان
+    // =====================================
+
+    async function deleteExam(id) {
+
+        const confirmed =
+            confirm("هل أنتِ متأكدة من حذف هذا الامتحان؟");
+
+
+        if (!confirmed) {
+
+            return;
+
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "/exams/" + id,
+                    {
+                        method: "DELETE"
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data.error ||
+                    "فشل حذف الامتحان"
+                );
+
+            }
+
+
+            showMessage(
+                "تم حذف الامتحان بنجاح ✅",
+                "success"
+            );
+
+
+            loadExams();
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            showMessage(
+                error.message ||
+                "حدث خطأ أثناء حذف الامتحان",
+                "error"
+            );
+
+        }
+
+    }
+
+
+    // =====================================
+    // تشغيل الصفحة
+    // =====================================
+
+    loadSubjects();
+
+    loadExams();
+
+</script>
+
+</body>
+</html>
