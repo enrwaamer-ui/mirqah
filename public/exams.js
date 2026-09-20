@@ -1,19 +1,72 @@
 const examsList = document.getElementById("examsList");
 
-const student = JSON.parse(localStorage.getItem("student"));
+const studentData = localStorage.getItem("student");
 
-if (!student) {
+if (!studentData) {
+
     window.location.href = "index.html";
+
 } else {
 
+    const student = JSON.parse(studentData);
+
+
+    // =========================
+    // تنسيق التاريخ
+    // =========================
+    function formatDate(dateValue) {
+
+        if (!dateValue) {
+            return "غير محدد";
+        }
+
+        const date = new Date(dateValue);
+
+        if (isNaN(date.getTime())) {
+            return "غير محدد";
+        }
+
+        return date.toLocaleDateString("ar-LY", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric"
+        });
+    }
+
+
+    // =========================
+    // تنسيق الوقت
+    // =========================
+    function formatTime(timeValue) {
+
+        if (!timeValue) {
+            return "غير محدد";
+        }
+
+        const match =
+            String(timeValue).match(/^(\d{2}):(\d{2})/);
+
+        if (match) {
+            return `${match[1]}:${match[2]}`;
+        }
+
+        return timeValue;
+    }
+
+
+    // =========================
+    // تحميل الامتحانات
+    // =========================
     fetch(`/exams?student_id=${student.id}`)
+
         .then(response => response.json())
 
         .then(exams => {
 
             examsList.innerHTML = "";
 
-            if (exams.length === 0) {
+            if (!Array.isArray(exams) || exams.length === 0) {
 
                 examsList.innerHTML =
                     "<p>مافيش امتحانات حالياً.</p>";
@@ -21,43 +74,60 @@ if (!student) {
                 return;
             }
 
+
             exams.forEach(exam => {
 
-                const card = document.createElement("div");
+                const card =
+                    document.createElement("div");
 
                 card.className = "dashboard-card";
 
                 card.style.marginBottom = "20px";
 
-                card.innerHTML =` 
+                const examDate =
+                    formatDate(exam.exam_date);
+
+                const examTime =
+                    formatTime(exam.start_time);
+
+                const subjectName =
+                    exam.subject_display_name ||
+                    exam.subject_name ||
+                    "غير محددة";
+
+                const hall =
+                    exam.hall ||
+                    "غير محددة";
+
+
+                card.innerHTML = `
+
                     <h3>
-                        ${exam.title}
+                        📝 امتحان ${subjectName}
                     </h3>
 
                     <p>
                         📚 المادة:
-                        ${exam.subject_name}
+                        ${subjectName}
                     </p>
 
                     <p>
                         📅 التاريخ:
-                        ${exam.exam_date}
+                        ${examDate}
                     </p>
 
                     <p>
                         🕐 الوقت:
-                        ${exam.start_time}
+                        ${examTime}
                     </p>
 
                     <p>
                         📍 القاعة:
-                        ${exam.room}
+                        ${hall}
                     </p>
 
-                    <p>
-                        ${exam.description || ""}
-                    </p>
-                ;`
+                `;
+
 
                 examsList.appendChild(card);
 
