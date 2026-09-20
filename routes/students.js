@@ -1,3 +1,4 @@
+```javascript
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
@@ -82,8 +83,24 @@ router.post("/register", async (req, res) => {
         } = req.body;
 
 
-        // التأكد من أن البريد غير مستخدم
+        // رقم الطالب
+        const student_id =
+            req.body.student_id ||
+            req.body.student_id_number ||
+            req.body.student_number;
 
+
+        // التأكد من وجود رقم الطالب
+        if (!student_id) {
+
+            return res.status(400).json({
+                error: "رقم الطالب مطلوب"
+            });
+
+        }
+
+
+        // التأكد من أن البريد غير مستخدم
         const existingStudent = await db.query(
             "SELECT id FROM public.students WHERE email = $1",
             [email]
@@ -100,13 +117,30 @@ router.post("/register", async (req, res) => {
 
 
         // إنشاء الحساب
-
         const result = await db.query(
-           ` INSERT INTO public.students
-            (name, email, password, major, university, academic_year, seat_number)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING id, name, email, major, university, academic_year, seat_number`,
+            `INSERT INTO public.students
+            (
+                student_id,
+                name,
+                email,
+                password,
+                major,
+                university,
+                academic_year,
+                seat_number
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING
+                id,
+                student_id,
+                name,
+                email,
+                major,
+                university,
+                academic_year,
+                seat_number`,
             [
+                student_id,
                 name,
                 email,
                 password,
@@ -143,14 +177,29 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
     try {
 
-        const { email, password } = req.body;
+        const {
+            email,
+            password
+        } = req.body;
 
 
         const result = await db.query(
-            `SELECT id, name, email, major, university, academic_year, seat_number
+            `SELECT
+                id,
+                student_id,
+                name,
+                email,
+                major,
+                university,
+                academic_year,
+                seat_number
              FROM public.students
-             WHERE email = $1 AND password = $2`,
-            [email, password]
+             WHERE email = $1
+             AND password = $2`,
+            [
+                email,
+                password
+            ]
         );
 
 
@@ -194,8 +243,6 @@ router.put("/reset-password", async (req, res) => {
         } = req.body;
 
 
-        // التأكد من وجود البريد
-
         const student = await db.query(
             "SELECT id FROM public.students WHERE email = $1",
             [email]
@@ -203,14 +250,13 @@ router.put("/reset-password", async (req, res) => {
 
 
         if (student.rows.length === 0) {
-           return res.status(404).json({
+
+            return res.status(404).json({
                 error: "البريد الإلكتروني غير موجود"
             });
 
         }
 
-
-        // تغيير كلمة المرور
 
         await db.query(
             `UPDATE public.students
@@ -259,12 +305,38 @@ router.post("/", async (req, res) => {
         } = req.body;
 
 
+        const student_id =
+            req.body.student_id ||
+            req.body.student_id_number ||
+            req.body.student_number;
+
+
+        if (!student_id) {
+
+            return res.status(400).json({
+                error: "رقم الطالب مطلوب"
+            });
+
+        }
+
+
         const result = await db.query(
             `INSERT INTO public.students
-            (name, email, password, photo, major, university, academic_year, seat_number)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            (
+                student_id,
+                name,
+                email,
+                password,
+                photo,
+                major,
+                university,
+                academic_year,
+                seat_number
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *`,
             [
+                student_id,
                 name,
                 email,
                 password,
@@ -314,15 +386,16 @@ router.put("/:id", async (req, res) => {
 
 
         const result = await db.query(
-           ` UPDATE public.students
-             SET name = $1,
-                 email = $2,
-                 password = $3,
-                 photo = $4,
-                 major = $5,
-                 university = $6,
-                 academic_year = $7,
-                 seat_number = $8
+            `UPDATE public.students
+             SET
+                name = $1,
+                email = $2,
+                password = $3,
+                photo = $4,
+                major = $5,
+                university = $6,
+                academic_year = $7,
+                seat_number = $8
              WHERE id = $9
              RETURNING *`,
             [
@@ -382,28 +455,4 @@ router.delete("/:id", async (req, res) => {
         if (result.rows.length === 0) {
 
             return res.status(404).json({
-                error: "Student not found"
-            });
-
-        }
-
-
-        res.json({
-            message: "Student deleted successfully",
-            student: result.rows[0]
-        });
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        res.status(500).json({
-            error: "Database error"
-        });
-
-    }
-});
-
-
-module.exports = router; 
+```
