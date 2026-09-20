@@ -3,12 +3,39 @@ const router = express.Router();
 const db = require("../db");
 
 
-
-// عرض امتحانات المواد الخاصة بالطالب
+// ================================
+// عرض امتحانات الطالب
+// ================================
 router.get("/", async (req, res) => {
     try {
         const { student_id } = req.query;
 
+        // إذا فيه student_id → امتحانات المواد المسجل فيها الطالب
+        if (student_id) {
+            const result = await db.query(
+                `SELECT 
+                    exams.id,
+                    exams.subject_id,
+                    exams.subject_name,
+                    exams.exam_date,
+                    exams.start_time,
+                    exams.hall,
+                    subjects.name AS subject_display_name
+                 FROM public.exams
+                 JOIN public.subjects
+                    ON exams.subject_id = subjects.id
+                 JOIN public.enrollments
+                    ON exams.subject_id = enrollments.subject_id
+                 WHERE enrollments.student_id = $1
+                 AND enrollments.status = 'active'
+                 ORDER BY exams.exam_date, exams.start_time`,
+                [student_id]
+            );
+
+            return res.json(result.rows);
+        }
+
+        // إذا مافيش student_id → عرض كل الامتحانات للإدارة
         const result = await db.query(
             `SELECT 
                 exams.id,
@@ -21,12 +48,7 @@ router.get("/", async (req, res) => {
              FROM public.exams
              JOIN public.subjects
                 ON exams.subject_id = subjects.id
-             JOIN public.enrollments
-                ON exams.subject_id = enrollments.subject_id
-             WHERE enrollments.student_id = $1
-             AND enrollments.status = 'active'
-             ORDER BY exams.exam_date, exams.start_time`,
-            [student_id]
+             ORDER BY exams.exam_date, exams.start_time`
         );
 
         res.json(result.rows);
@@ -41,8 +63,9 @@ router.get("/", async (req, res) => {
 });
 
 
-
-// عرض امتحان واحد حسب ID
+// ================================
+// عرض امتحان واحد
+// ================================
 router.get("/:id", async (req, res) => {
     try {
         const { id } = req.params;
@@ -70,17 +93,39 @@ router.get("/:id", async (req, res) => {
 });
 
 
-
-// إضافة امتحان جديد
+// ================================
+// إضافة امتحان
+// ================================
 router.post("/", async (req, res) => {
     try {
         const {
             subject_id,
-            subject_name,
             exam_date,
             start_time,
             hall
         } = req.body;
+
+        if (!subject_id || !exam_date || !start_time || !hall) {
+            return res.status(400).json({
+                error: "جميع بيانات الامتحان مطلوبة"
+            });
+        }
+
+        // جلب اسم المادة من جدول المواد
+        const subjectResult = await db.query(
+            `SELECT name
+             FROM public.subjects
+             WHERE id = $1`,
+            [subject_id]
+        );
+
+        if (subjectResult.rows.length === 0) {
+            return res.status(404).json({
+                error: "المادة غير موجودة"
+            });
+        }
+
+        const subject_name = subjectResult.rows[0].name;
 
         const result = await db.query(
             `INSERT INTO public.exams
@@ -108,19 +153,41 @@ router.post("/", async (req, res) => {
 });
 
 
-
+// ================================
 // تعديل امتحان
+// ================================
 router.put("/:id", async (req, res) => {
     try {
         const { id } = req.params;
 
         const {
             subject_id,
-            subject_name,
             exam_date,
             start_time,
             hall
         } = req.body;
+
+        if (!subject_id || !exam_date || !start_time || !hall) {
+            return res.status(400).json({
+                error: "جميع بيانات الامتحان مطلوبة"
+            });
+        }
+
+        // جلب اسم المادة من جدول المواد
+        const subjectResult = await db.query(
+            `SELECT name
+             FROM public.subjects
+             WHERE id = $1`,
+            [subject_id]
+        );
+
+        if (subjectResult.rows.length === 0) {
+            return res.status(404).json({
+                error: "المادة غير موجودة"
+            });
+        }
+
+        const subject_name = subjectResult.rows[0].name;
 
         const result = await db.query(
             `UPDATE public.exams
@@ -159,8 +226,9 @@ router.put("/:id", async (req, res) => {
 });
 
 
-
+// ================================
 // حذف امتحان
+// ================================
 router.delete("/:id", async (req, res) => {
     try {
         const result = await db.query(
@@ -187,7 +255,6 @@ router.delete("/:id", async (req, res) => {
         });
     }
 });
-
 
 
 module.exports = router;
