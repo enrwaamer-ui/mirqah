@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>إدارة الطلاب - مِرقاة</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            color: #222;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1200px;
+            margin: 30px auto;
+        }
+
+        .header,
+        .card {
+            background: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .header h1 {
+            margin: 0 0 8px;
+        }
+
+        .header p {
+            margin: 0;
+            color: #666;
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin-top: 15px;
+            text-decoration: none;
+            background: #6c757d;
+            color: white;
+            padding: 10px 18px;
+            border-radius: 8px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .field label {
+            margin-bottom: 7px;
+            font-weight: bold;
+        }
+
+        .field input {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            width: 100%;
+        }
+
+        .full {
+            grid-column: 1 / -1;
+        }
+
+        button {
+            border: none;
+            padding: 11px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .add-btn {
+            background: #198754;
+            color: white;
+            margin-top: 20px;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        .message {
+            display: none;
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .success {
+            display: block;
+            background: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .error {
+            display: block;
+            background: #f8d7da;
+            color: #842029;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 950px;
+        }
+
+        th,
+        td {
+            padding: 13px 10px;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+        }
+
+        th {
+            background: #f1f3f5;
+        }
+
+        .empty {
+            padding: 25px;
+            color: #777;
+            text-align: center;
+        }
+
+        .student-count {
+            margin-bottom: 15px;
+            color: #555;
+            font-weight: bold;
+        }
+
+        @media (max-width: 700px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .full {
+                grid-column: auto;
+            }
+
+            .container {
+                width: 92%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- العنوان -->
+    <div class="header">
+
+        <h1>👨‍🎓 إدارة الطلاب</h1>
+
+        <p>
+            إضافة وعرض والبحث عن الطلاب المسجلين
+        </p>
+
+        <a href="dashboard.html" class="back-btn">
+            العودة للوحة التحكم
+        </a>
+
+    </div>
+
+
+    <!-- إضافة طالب -->
+    <div class="card">
+
+        <h2>➕ إضافة طالب جديد</h2>
+
+        <div class="form-grid">
+
+            <div class="field">
+                <label for="studentId">
+                    رقم الطالب
+                </label>
+
+                <input
+                    type="text"
+                    id="studentId"
+                    placeholder="رقم الطالب"
+                >
+            </div>
+
+
+            <div class="field">
+                <label for="name">
+                    اسم الطالب
+                </label>
+
+                <input
+                    type="text"
+                    id="name"
+                    placeholder="اسم الطالب"
+                >
+            </div>
+
+
+            <div class="field">
+                <label for="email">
+                    البريد الإلكتروني
+                </label>
+
+                <input
+                    type="email"
+                    id="email"
+                    placeholder="example@email.com"
+                >
+            </div>
+
+
+            <div class="field">
+                <label for="password">
+                    كلمة المرور
+                </label>
+
+                <input
+                    type="password"
+                    id="password"
+                    placeholder="كلمة المرور"
+                >
+            </div>
+
+
+            <div class="field">
+                <label for="major">
+                    التخصص
+                </label>
+
+                <input
+                    type="text"
+                    id="major"
+                    placeholder="التخصص"
+                >
+            </div>
+
+
+            <div class="field">
+                <label for="university">
+                    الجامعة
+                </label>
+
+                <input
+                    type="text"
+                    id="university"
+                    placeholder="الجامعة"
+                >
+            </div>
+
+
+            <div class="field full">
+                <label for="academicYear">
+                    السنة الدراسية
+                </label>
+
+                <input
+                    type="text"
+                    id="academicYear"
+                    placeholder="مثال: السنة الأولى"
+                >
+            </div>
+
+        </div>
+
+
+        <button
+            class="add-btn"
+            onclick="addStudent()"
+        >
+            إضافة الطالب
+        </button>
+
+
+        <div
+            id="message"
+            class="message"
+        ></div>
+
+    </div>
+
+
+    <!-- الطلاب -->
+    <div class="card">
+
+        <h2>📋 الطلاب المسجلون</h2>
+
+        <div class="search-box">
+
+            <input
+                type="text"
+                id="search"
+                placeholder="🔎 ابحث برقم الطالب أو الاسم أو الإيميل..."
+                oninput="filterStudents()"
+            >
+
+        </div>
+
+
+        <div
+            id="studentCount"
+            class="student-count"
+        >
+            جاري تحميل الطلاب...
+        </div>
+
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>رقم الطالب</th>
+                        <th>الاسم</th>
+                        <th>الإيميل</th>
+                        <th>التخصص</th>
+                        <th>الجامعة</th>
+                        <th>السنة</th>
+                        <th>حذف</th>
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="studentsTable">
+
+                    <tr>
+                        <td
+                            colspan="7"
+                            class="empty"
+                        >
+                            جاري تحميل الطلاب...
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+    let students = [];
+
+
+    const studentsTable =
+        document.getElementById("studentsTable");
+
+    const studentCount =
+        document.getElementById("studentCount");
+
+    const message =
+        document.getElementById("message");
+
+
+    // =========================================
+    // الرسائل
+    // =========================================
+
+    function showMessage(text, type) {
+
+        message.textContent = text;
+
+        message.className =
+            "message " + type;
+
+        setTimeout(() => {
+
+            message.className =
+                "message";
+
+        }, 4000);
+
+    }
+
+
+    // =========================================
+    // تحميل الطلاب
+    // =========================================
+
+    async function loadStudents() {
+
+        try {
+
+            const response =
+                await fetch("/students");
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "فشل تحميل الطلاب"
+                );
+
+            }
+
+            students =
+                await response.json();
+
+            renderStudents(students);
+
+        } catch (error) {
+
+            console.error(error);
+
+            studentsTable.innerHTML = `
+                <tr>
+                    <td
+                        colspan="7"
+                        class="empty"
+                    >
+                        حدث خطأ أثناء تحميل الطلاب
+                    </td>
+                </tr>
+            `;
+
+            studentCount.textContent =
+                "تعذر تحميل الطلاب";
+
+        }
+
+    }
+
+
+    // =========================================
+    // عرض الطلاب
+    // =========================================
+
+    function renderStudents(list) {
+
+        studentsTable.innerHTML = "";
+
+
+        studentCount.textContent =
+            "عدد الطلاب: " + list.length;
+
+
+        if (list.length === 0) {
+
+            studentsTable.innerHTML = `
+                <tr>
+                    <td
+                        colspan="7"
+                        class="empty"
+                    >
+                        لا توجد نتائج
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+
+        list.forEach(student => {
+
+            const row =
+                document.createElement("tr");
+
+
+            row.innerHTML = `
+
+                <td>
+                    ${escapeHtml(student.student_id || "-")}
+                </td>
+
+                <td>
+                    ${escapeHtml(student.name || "-")}
+                </td>
+
+                <td>
+                    ${escapeHtml(student.email || "-")}
+                </td>
+
+                <td>
+                    ${escapeHtml(student.major || "-")}
+                </td>
+
+                <td>
+                    ${escapeHtml(student.university || "-")}
+                </td>
+
+                <td>
+                    ${escapeHtml(student.academic_year || "-")}
+                </td>
+
+                <td>
+
+                    <button
+                        class="delete-btn"
+                        onclick="deleteStudent(${student.id})"
+                    >
+                        حذف
+                    </button>
+
+                </td>
+
+            `;
+
+
+            studentsTable.appendChild(row);
+
+        });
+
+    }
+
+
+    // =========================================
+    // البحث
+    // =========================================
+
+    function filterStudents() {
+
+        const search =
+            document.getElementById("search")
+                .value
+                .trim()
+                .toLowerCase();
+
+
+        if (!search) {
+
+            renderStudents(students);
+
+            return;
+        }
+
+
+        const filtered =
+            students.filter(student => {
+
+                const studentId =
+                    String(
+                        student.student_id || ""
+                    ).toLowerCase();
+
+                const name =
+                    String(
+                        student.name || ""
+                    ).toLowerCase();
+
+                const email =
+                    String(
+                        student.email || ""
+                    ).toLowerCase();
+
+
+                return (
+                    studentId.includes(search) ||
+                    name.includes(search) ||
+                    email.includes(search)
+                );
+
+            });
+
+
+        renderStudents(filtered);
+
+    }
+
+
+    // =========================================
+    // إضافة طالب
+    // =========================================
+
+    async function addStudent() {
+
+        const studentId =
+            document.getElementById("studentId")
+                .value
+                .trim();
+
+        const name =
+            document.getElementById("name")
+                .value
+                .trim();
+
+        const email =
+            document.getElementById("email")
+                .value
+                .trim();
+
+        const password =
+            document.getElementById("password")
+                .value;
+
+        const major =
+            document.getElementById("major")
+                .value
+                .trim();
+
+        const university =
+            document.getElementById("university")
+                .value
+                .trim();
+
+        const academicYear =
+            document.getElementById("academicYear")
+                .value
+                .trim();
+
+
+        if (!studentId) {
+
+            showMessage(
+                "رقم الطالب مطلوب",
+                "error"
+            );
+
+            return;
+        }
+
+
+        if (!name) {
+
+            showMessage(
+                "اسم الطالب مطلوب",
+                "error"
+            );
+
+            return;
+        }
+
+
+        if (!email) {
+
+            showMessage(
+                "البريد الإلكتروني مطلوب",
+                "error"
+            );
+
+            return;
+        }
+
+
+        if (!password) {
+
+            showMessage(
+                "كلمة المرور مطلوبة",
+                "error"
+            );
+
+            return;
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "/students",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body: JSON.stringify({
+
+                            student_id:
+                                studentId,
+
+                            name:
+                                name,
+
+                            email:
+                                email,
+
+                            password:
+                                password,
+
+                            major:
+                                major,
+
+                            university:
+                                university,
+
+                            academic_year:
+                                academicYear
+
+                        })
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data.error ||
+                    "فشل إضافة الطالب"
+                );
+
+            }
+
+
+            showMessage(
+                "تمت إضافة الطالب بنجاح ✅",
+                "success"
+            );
+
+
+            clearForm();
+
+            await loadStudents();
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            showMessage(
+                error.message ||
+                "حدث خطأ أثناء إضافة الطالب",
+                "error"
+            );
+
+        }
+
+    }
+
+
+    // =========================================
+    // حذف طالب
+    // =========================================
+
+    async function deleteStudent(id) {
+
+        const confirmed =
+            confirm(
+                "هل أنتِ متأكدة من حذف هذا الطالب؟"
+            );
+
+
+        if (!confirmed) {
+
+            return;
+
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "/students/" + id,
+                    {
+                        method: "DELETE"
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data.error ||
+                    "فشل حذف الطالب"
+                );
+
+            }
+
+
+            showMessage(
+                "تم حذف الطالب بنجاح ✅",
+                "success"
+            );
+
+
+            await loadStudents();
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            showMessage(
+                error.message ||
+                "حدث خطأ أثناء حذف الطالب",
+                "error"
+            );
+
+        }
+
+    }
+
+
+    // =========================================
+    // تنظيف النموذج
+    // =========================================
+
+    function clearForm() {
+
+        document.getElementById("studentId")
+            .value = "";
+
+        document.getElementById("name")
+            .value = "";
+
+        document.getElementById("email")
+            .value = "";
+
+        document.getElementById("password")
+            .value = "";
+
+        document.getElementById("major")
+            .value = "";
+
+        document.getElementById("university")
+            .value = "";
+
+        document.getElementById("academicYear")
+            .value = "";
+
+    }
+
+
+    // =========================================
+    // حماية عرض النصوص
+    // =========================================
+
+    function escapeHtml(value) {
+
+        return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+
+    }
+
+
+    // =========================================
+    // تشغيل الصفحة
+    // =========================================
+
+    loadStudents();
+
+</script>
+
+</body>
+</html>
