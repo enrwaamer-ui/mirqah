@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,9 +22,9 @@
             border-radius: 20px;
         }
 
+        .admin-card h1,
         .admin-card h2 {
             margin-top: 0;
-            margin-bottom: 20px;
         }
 
         .form-group {
@@ -47,16 +48,19 @@
 
         .add-button {
             width: 100%;
-            padding: 13px;
+            padding: 14px;
             border: none;
             border-radius: 10px;
             cursor: pointer;
             font-size: 16px;
             font-weight: bold;
+            background: #2563eb;
+            color: white;
         }
 
         .subjects-list {
-            display: grid;
+            display: flex;
+            flex-direction: column;
             gap: 15px;
         }
 
@@ -64,14 +68,20 @@
             padding: 18px;
             border-radius: 15px;
             background: rgba(255, 255, 255, 0.08);
+
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 15px;
+
+            gap: 20px;
+        }
+
+        .subject-info {
+            flex: 1;
         }
 
         .subject-info h3 {
-            margin: 0 0 7px;
+            margin: 0 0 8px;
         }
 
         .subject-info p {
@@ -80,12 +90,26 @@
         }
 
         .delete-button {
+            display: block;
+
+            flex-shrink: 0;
+
             border: none;
-            padding: 10px 15px;
-            border-radius: 8px;
+            padding: 12px 18px;
+
+            border-radius: 10px;
+
             cursor: pointer;
-            background: #c0392b;
+
+            background: #dc2626;
             color: white;
+
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        .delete-button:hover {
+            opacity: 0.85;
         }
 
         .message {
@@ -99,32 +123,58 @@
             opacity: 0.7;
             padding: 20px;
         }
+
+        @media (max-width: 600px) {
+
+            .subject-item {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .delete-button {
+                width: 100%;
+            }
+
+        }
     </style>
 </head>
+
 
 <body>
 
 <header class="topbar">
-    <div class="logo-small">مِرقاة</div>
+
+    <div class="logo-small">
+        مِرقاة
+    </div>
 
     <a href="dashboard.html">
         الرئيسية
     </a>
+
 </header>
+
 
 <main class="admin-container">
 
+
+    <!-- إضافة مادة -->
+
     <div class="admin-card dashboard-card">
 
-        <h1>📚 إدارة المواد</h1>
+        <h1>
+            📚 إدارة المواد
+        </h1>
 
         <p>
             من هنا تقدري تضيفي المواد الدراسية للنظام.
         </p>
 
+
         <form id="subjectForm">
 
             <div class="form-group">
+
                 <label for="subjectName">
                     اسم المادة
                 </label>
@@ -135,9 +185,12 @@
                     placeholder="مثلاً: برمجة 2"
                     required
                 >
+
             </div>
 
+
             <div class="form-group">
+
                 <label for="subjectCode">
                     رمز المادة
                 </label>
@@ -148,7 +201,9 @@
                     placeholder="مثلاً: CS202"
                     required
                 >
+
             </div>
+
 
             <button
                 type="submit"
@@ -159,6 +214,7 @@
 
         </form>
 
+
         <div
             id="message"
             class="message"
@@ -167,22 +223,32 @@
     </div>
 
 
+
+    <!-- قائمة المواد -->
+
     <div class="admin-card dashboard-card">
 
-        <h2>📋 المواد الموجودة</h2>
+        <h2>
+            📋 المواد الموجودة
+        </h2>
+
 
         <div
             id="subjectsList"
             class="subjects-list"
         >
+
             <p class="empty">
                 جاري تحميل المواد...
             </p>
+
         </div>
 
     </div>
 
+
 </main>
+
 
 
 <script>
@@ -203,7 +269,10 @@ const message =
     document.getElementById("message");
 
 
+// ================================
 // تحميل المواد
+// ================================
+
 async function loadSubjects() {
 
     try {
@@ -211,28 +280,40 @@ async function loadSubjects() {
         const response =
             await fetch("/subjects");
 
+
+        if (!response.ok) {
+            throw new Error("فشل تحميل المواد");
+        }
+
+
         const data =
             await response.json();
 
+
         subjectsList.innerHTML = "";
+
 
         if (!Array.isArray(data) || data.length === 0) {
 
-            subjectsList.innerHTML =
-                `<p class="empty">
+            subjectsList.innerHTML = `
+                <p class="empty">
                     مافيش مواد مضافة حالياً.
-                </p>`;
+                </p>
+            `;
 
             return;
         }
+
 
         data.forEach(subject => {
 
             const item =
                 document.createElement("div");
 
+
             item.className =
                 "subject-item";
+
 
             item.innerHTML = `
 
@@ -243,45 +324,60 @@ async function loadSubjects() {
                     </h3>
 
                     <p>
-                        رمز المادة: ${subject.code}
+                        رمز المادة:
+                        ${subject.code || "بدون رمز"}
                     </p>
 
                 </div>
 
+
                 <button
+                    type="button"
                     class="delete-button"
                     onclick="deleteSubject(${subject.id})"
                 >
-                    🗑️ حذف
+                    🗑️ حذف المادة
                 </button>
 
             `;
+
 
             subjectsList.appendChild(item);
 
         });
 
+
     } catch (error) {
 
         console.error(error);
 
-        subjectsList.innerHTML =
-            `<p class="empty">
-                حدث خطأ في تحميل المواد.
-            </p>`;
+
+        subjectsList.innerHTML = `
+            <p class="empty">
+                ❌ حدث خطأ في تحميل المواد.
+            </p>
+        `;
+
     }
+
 }
 
 
+
+// ================================
 // إضافة مادة
+// ================================
+
 subjectForm.addEventListener(
     "submit",
     async function(event) {
 
         event.preventDefault();
 
+
         message.textContent =
             "جاري إضافة المادة...";
+
 
         try {
 
@@ -318,35 +414,46 @@ subjectForm.addEventListener(
                     data.error ||
                     "حدث خطأ أثناء إضافة المادة"
                 );
+
             }
 
 
             message.textContent =
                 "✅ تمت إضافة المادة بنجاح";
 
+
             subjectForm.reset();
 
+
             loadSubjects();
+
 
         } catch (error) {
 
             console.error(error);
 
+
             message.textContent =
                 "❌ " + error.message;
+
         }
 
     }
 );
 
 
+
+// ================================
 // حذف مادة
+// ================================
+
 async function deleteSubject(id) {
 
     const confirmed =
         confirm(
-            "هل متأكدة إنك تبي تحذفي هذه المادة؟"
+            "⚠️ هل متأكدة إنك تبي تحذفي هذه المادة؟"
         );
+
 
     if (!confirmed) {
         return;
@@ -372,31 +479,42 @@ async function deleteSubject(id) {
 
             throw new Error(
                 data.error ||
-                "حدث خطأ أثناء الحذف"
+                "حدث خطأ أثناء حذف المادة"
             );
+
         }
 
 
         message.textContent =
-            "✅ تم حذف المادة";
+            "✅ تم حذف المادة بنجاح";
+
 
         loadSubjects();
+
 
     } catch (error) {
 
         console.error(error);
 
+
         message.textContent =
             "❌ " + error.message;
+
     }
 
 }
 
 
-// تشغيل تحميل المواد أول ما الصفحة تفتح
+
+// ================================
+// تشغيل الصفحة
+// ================================
+
 loadSubjects();
 
 </script>
 
+
 </body>
+
 </html>
