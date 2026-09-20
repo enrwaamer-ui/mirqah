@@ -2,28 +2,55 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db");
 
+
+// ============================================
+// عرض كل الطلاب
+// ============================================
 router.get("/", async (req, res) => {
     try {
         const result = await db.query(
-            "SELECT * FROM public.students"
+            `SELECT
+                id,
+                student_id,
+                name,
+                email,
+                major,
+                university,
+                academic_year
+             FROM public.students
+             ORDER BY name`
         );
 
         res.json(result.rows);
 
     } catch (error) {
         console.error(error);
+
         res.status(500).json({
             error: "Database error"
         });
     }
 });
 
+
+// ============================================
+// عرض طالب واحد
+// ============================================
 router.get("/:id", async (req, res) => {
     try {
         const { id } = req.params;
 
         const result = await db.query(
-            "SELECT * FROM public.students WHERE id = $1",
+            `SELECT
+                id,
+                student_id,
+                name,
+                email,
+                major,
+                university,
+                academic_year
+             FROM public.students
+             WHERE id = $1`,
             [id]
         );
 
@@ -37,12 +64,17 @@ router.get("/:id", async (req, res) => {
 
     } catch (error) {
         console.error(error);
+
         res.status(500).json({
             error: "Database error"
         });
     }
 });
 
+
+// ============================================
+// تسجيل طالب جديد
+// ============================================
 router.post("/register", async (req, res) => {
     try {
         const {
@@ -62,13 +94,16 @@ router.post("/register", async (req, res) => {
         }
 
         const existingStudent = await db.query(
-            "SELECT id FROM public.students WHERE email = $1",
-            [email]
+            `SELECT id
+             FROM public.students
+             WHERE email = $1
+                OR student_id = $2`,
+            [email, student_id]
         );
 
         if (existingStudent.rows.length > 0) {
             return res.status(400).json({
-                error: "البريد الإلكتروني مستخدم من قبل"
+                error: "البريد الإلكتروني أو رقم الطالب مستخدم من قبل"
             });
         }
 
@@ -117,6 +152,10 @@ router.post("/register", async (req, res) => {
     }
 });
 
+
+// ============================================
+// تسجيل الدخول
+// ============================================
 router.post("/login", async (req, res) => {
     try {
         const {
@@ -159,6 +198,10 @@ router.post("/login", async (req, res) => {
     }
 });
 
+
+// ============================================
+// تغيير كلمة المرور
+// ============================================
 router.put("/reset-password", async (req, res) => {
     try {
         const {
@@ -167,7 +210,9 @@ router.put("/reset-password", async (req, res) => {
         } = req.body;
 
         const student = await db.query(
-            "SELECT id FROM public.students WHERE email = $1",
+            `SELECT id
+             FROM public.students
+             WHERE email = $1`,
             [email]
         );
 
@@ -197,13 +242,16 @@ router.put("/reset-password", async (req, res) => {
     }
 });
 
+
+// ============================================
+// إضافة طالب من لوحة الإدارة
+// ============================================
 router.post("/", async (req, res) => {
     try {
         const {
             name,
             email,
             password,
-            photo,
             major,
             university,
             academic_year,
@@ -216,6 +264,20 @@ router.post("/", async (req, res) => {
             });
         }
 
+        const existingStudent = await db.query(
+            `SELECT id
+             FROM public.students
+             WHERE email = $1
+                OR student_id = $2`,
+            [email, student_id]
+        );
+
+        if (existingStudent.rows.length > 0) {
+            return res.status(400).json({
+                error: "البريد الإلكتروني أو رقم الطالب مستخدم من قبل"
+            });
+        }
+
         const result = await db.query(
             `INSERT INTO public.students
             (
@@ -223,19 +285,24 @@ router.post("/", async (req, res) => {
                 name,
                 email,
                 password,
-                photo,
                 major,
                 university,
                 academic_year
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING *`,
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING
+                id,
+                student_id,
+                name,
+                email,
+                major,
+                university,
+                academic_year`,
             [
                 student_id,
                 name,
                 email,
                 password,
-                photo,
                 major,
                 university,
                 academic_year
@@ -253,6 +320,10 @@ router.post("/", async (req, res) => {
     }
 });
 
+
+// ============================================
+// تعديل بيانات طالب
+// ============================================
 router.put("/:id", async (req, res) => {
     try {
         const { id } = req.params;
@@ -261,35 +332,73 @@ router.put("/:id", async (req, res) => {
             name,
             email,
             password,
-            photo,
             major,
             university,
             academic_year
         } = req.body;
 
-        const result = await db.query(
-            `UPDATE public.students
-             SET
-                name = $1,
-                email = $2,
-                password = $3,
-                photo = $4,
-                major = $5,
-                university = $6,
-                academic_year = $7
-             WHERE id = $8
-             RETURNING *`,
-            [
-                name,
-                email,
-                password,
-                photo,
-                major,
-                university,
-                academic_year,
-                id
-            ]
-        );
+        let result;
+
+        if (password) {
+
+            result = await db.query(
+                `UPDATE public.students
+                 SET
+                    name = $1,
+                    email = $2,
+                    password = $3,
+                    major = $4,
+                    university = $5,
+                    academic_year = $6
+                 WHERE id = $7
+                 RETURNING
+                    id,
+                    student_id,
+                    name,
+                    email,
+                    major,
+                    university,
+                    academic_year`,
+                [
+                    name,
+                    email,
+                    password,
+                    major,
+                    university,
+                    academic_year,
+                    id
+                ]
+            );
+
+        } else {
+
+            result = await db.query(
+                `UPDATE public.students
+                 SET
+                    name = $1,
+                    email = $2,
+                    major = $3,
+                    university = $4,
+                    academic_year = $5
+                 WHERE id = $6
+                 RETURNING
+                    id,
+                    student_id,
+                    name,
+                    email,
+                    major,
+                    university,
+                    academic_year`,
+                [
+                    name,
+                    email,
+                    major,
+                    university,
+                    academic_year,
+                    id
+                ]
+            );
+        }
 
         if (result.rows.length === 0) {
             return res.status(404).json({
@@ -308,12 +417,25 @@ router.put("/:id", async (req, res) => {
     }
 });
 
+
+// ============================================
+// حذف طالب
+// ============================================
 router.delete("/:id", async (req, res) => {
     try {
         const { id } = req.params;
 
         const result = await db.query(
-            "DELETE FROM public.students WHERE id = $1 RETURNING *",
+            `DELETE FROM public.students
+             WHERE id = $1
+             RETURNING
+                id,
+                student_id,
+                name,
+                email,
+                major,
+                university,
+                academic_year`,
             [id]
         );
 
@@ -336,5 +458,6 @@ router.delete("/:id", async (req, res) => {
         });
     }
 });
+
 
 module.exports = router;
