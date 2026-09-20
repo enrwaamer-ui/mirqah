@@ -1,22 +1,17 @@
-        <!DOCTYPE html>
-
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-```
-<title>إنشاء حساب - مِرقاة</title>
+    <title>إنشاء حساب - مِرقاة</title>
 
-<link rel="stylesheet" href="style.css">
-```
-
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-```
 <div class="login-page">
 
     <div class="login-card">
@@ -112,45 +107,65 @@
 </div>
 
 <script>
-    document.getElementById("registerForm").addEventListener("submit", async function (event) {
+document.getElementById("registerForm").addEventListener("submit", async function (event) {
 
-        event.preventDefault();
+    event.preventDefault();
 
-        const message = document.getElementById("registerMessage");
+    const message = document.getElementById("registerMessage");
 
-        const name = document.getElementById("name").value.trim();
-        const student_id = document.getElementById("student_id").value.trim();
-        const email = document.getElementById("email").value.trim();
-        const password = document.getElementById("password").value;
-        const major = document.getElementById("major").value.trim();
-        const university = document.getElementById("university").value.trim();
-        const academic_year = document.getElementById("academic_year").value;
+    const name = document.getElementById("name").value.trim();
+    const student_id = document.getElementById("student_id").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    const major = document.getElementById("major").value.trim();
+    const university = document.getElementById("university").value.trim();
+    const academic_year = document.getElementById("academic_year").value;
 
-        message.textContent = "جاري إنشاء الحساب...";
+    message.textContent = "جاري إنشاء الحساب...";
 
-        try {
+    try {
 
-            const response = await fetch("/students/register", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    name: name,
-                    student_id: student_id,
-                    email: email,
-                    password: password,
-                    major: major,
-                    university: university,
-                    academic_year: academic_year
-                })
-            });
+        const response = await fetch("/students/register", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                name: name,
+                student_id: student_id,
+                email: email,
+                password: password,
+                major: major,
+                university: university,
+                academic_year: academic_year
+            })
+        });
 
-            const data = await response.json();
+        const data = await response.json();
 
-            if (!response.ok) {
-                message.textContent = data.error || "حدث خطأ أثناء إنشاء الحساب";
-                return;
-            }
-```
-   
+        if (!response.ok) {
+            message.textContent = data.error || "حدث خطأ أثناء إنشاء الحساب";
+            return;
+        }
+
+        message.textContent = "تم إنشاء الحساب بنجاح";
+
+        document.getElementById("registerForm").reset();
+
+        setTimeout(function () {
+            window.location.href = "index.html";
+        }, 1000);
+
+    } catch (error) {
+
+        console.error(error);
+
+        message.textContent = "تعذر الاتصال بالخادم";
+
+    }
+
+});
+</script>
+
+</body>
+</html>
