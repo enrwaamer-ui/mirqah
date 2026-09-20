@@ -3,26 +3,26 @@ const router = express.Router();
 const db = require("../db");
 
 
+
 // عرض امتحانات المواد الخاصة بالطالب
 router.get("/", async (req, res) => {
     try {
         const { student_id } = req.query;
 
         const result = await db.query(
-           ` SELECT 
+            `SELECT 
                 exams.id,
                 exams.subject_id,
-                subjects.name AS subject_name,
-                exams.title,
+                exams.subject_name,
                 exams.exam_date,
                 exams.start_time,
-                exams.room,
-                exams.description
+                exams.hall,
+                subjects.name AS subject_display_name
              FROM public.exams
              JOIN public.subjects
-             ON exams.subject_id = subjects.id
+                ON exams.subject_id = subjects.id
              JOIN public.enrollments
-             ON exams.subject_id = enrollments.subject_id
+                ON exams.subject_id = enrollments.subject_id
              WHERE enrollments.student_id = $1
              AND enrollments.status = 'active'
              ORDER BY exams.exam_date, exams.start_time`,
@@ -70,30 +70,29 @@ router.get("/:id", async (req, res) => {
 });
 
 
+
 // إضافة امتحان جديد
 router.post("/", async (req, res) => {
     try {
         const {
             subject_id,
-            title,
+            subject_name,
             exam_date,
             start_time,
-            room,
-            description
+            hall
         } = req.body;
 
         const result = await db.query(
-           ` INSERT INTO public.exams
-            (subject_id, title, exam_date, start_time, room, description)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            `INSERT INTO public.exams
+            (subject_id, subject_name, exam_date, start_time, hall)
+            VALUES ($1, $2, $3, $4, $5)
             RETURNING *`,
             [
                 subject_id,
-                title,
+                subject_name,
                 exam_date,
                 start_time,
-                room,
-                description
+                hall
             ]
         );
 
@@ -109,6 +108,7 @@ router.post("/", async (req, res) => {
 });
 
 
+
 // تعديل امتحان
 router.put("/:id", async (req, res) => {
     try {
@@ -116,30 +116,27 @@ router.put("/:id", async (req, res) => {
 
         const {
             subject_id,
-            title,
+            subject_name,
             exam_date,
             start_time,
-            room,
-            description
+            hall
         } = req.body;
 
         const result = await db.query(
-           ` UPDATE public.exams
-            SET subject_id = $1,
-                title = $2,
-                exam_date = $3,
-                start_time = $4,
-                room = $5,
-                description = $6
-            WHERE id = $7
-            RETURNING *`,
+            `UPDATE public.exams
+             SET subject_id = $1,
+                 subject_name = $2,
+                 exam_date = $3,
+                 start_time = $4,
+                 hall = $5
+             WHERE id = $6
+             RETURNING *`,
             [
                 subject_id,
-                title,
+                subject_name,
                 exam_date,
                 start_time,
-                room,
-                description,
+                hall,
                 id
             ]
         );
@@ -162,14 +159,13 @@ router.put("/:id", async (req, res) => {
 });
 
 
+
 // حذف امتحان
 router.delete("/:id", async (req, res) => {
     try {
-        const { id } = req.params;
-
         const result = await db.query(
             "DELETE FROM public.exams WHERE id = $1 RETURNING *",
-            [id]
+            [req.params.id]
         );
 
         if (result.rows.length === 0) {
@@ -191,6 +187,7 @@ router.delete("/:id", async (req, res) => {
         });
     }
 });
+
 
 
 module.exports = router;
