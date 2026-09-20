@@ -9,7 +9,6 @@ const db = require("../db");
 
 router.get("/", async (req, res) => {
     try {
-
         const result = await db.query(
             "SELECT * FROM public.students"
         );
@@ -17,13 +16,11 @@ router.get("/", async (req, res) => {
         res.json(result.rows);
 
     } catch (error) {
-
         console.error(error);
 
         res.status(500).json({
             error: "Database error"
         });
-
     }
 });
 
@@ -34,7 +31,6 @@ router.get("/", async (req, res) => {
 
 router.get("/:id", async (req, res) => {
     try {
-
         const { id } = req.params;
 
         const result = await db.query(
@@ -43,23 +39,19 @@ router.get("/:id", async (req, res) => {
         );
 
         if (result.rows.length === 0) {
-
             return res.status(404).json({
                 error: "Student not found"
             });
-
         }
 
         res.json(result.rows[0]);
 
     } catch (error) {
-
         console.error(error);
 
         res.status(500).json({
             error: "Database error"
         });
-
     }
 });
 
@@ -81,41 +73,28 @@ router.post("/register", async (req, res) => {
             seat_number
         } = req.body;
 
-
-        // رقم الطالب
         const student_id =
             req.body.student_id ||
             req.body.student_id_number ||
             req.body.student_number;
 
-
-        // التأكد من وجود رقم الطالب
         if (!student_id) {
-
             return res.status(400).json({
                 error: "رقم الطالب مطلوب"
             });
-
         }
 
-
-        // التأكد من أن البريد غير مستخدم
         const existingStudent = await db.query(
             "SELECT id FROM public.students WHERE email = $1",
             [email]
         );
 
-
         if (existingStudent.rows.length > 0) {
-
             return res.status(400).json({
                 error: "البريد الإلكتروني مستخدم من قبل"
             });
-
         }
 
-
-        // إنشاء الحساب
         const result = await db.query(
             `INSERT INTO public.students
             (
@@ -150,21 +129,17 @@ router.post("/register", async (req, res) => {
             ]
         );
 
-
         res.status(201).json({
             message: "تم إنشاء الحساب بنجاح",
             student: result.rows[0]
         });
 
-
     } catch (error) {
-
         console.error(error);
 
         res.status(500).json({
             error: "حدث خطأ في إنشاء الحساب"
         });
-
     }
 });
 
@@ -180,7 +155,6 @@ router.post("/login", async (req, res) => {
             email,
             password
         } = req.body;
-
 
         const result = await db.query(
             `SELECT
@@ -201,30 +175,23 @@ router.post("/login", async (req, res) => {
             ]
         );
 
-
         if (result.rows.length === 0) {
-
             return res.status(401).json({
                 error: "الإيميل أو كلمة المرور غير صحيحة"
             });
-
         }
-
 
         res.json({
             message: "Login successful",
             student: result.rows[0]
         });
 
-
     } catch (error) {
-
         console.error(error);
 
         res.status(500).json({
             error: "Database error"
         });
-
     }
 });
 
@@ -241,21 +208,16 @@ router.put("/reset-password", async (req, res) => {
             newPassword
         } = req.body;
 
-
         const student = await db.query(
             "SELECT id FROM public.students WHERE email = $1",
             [email]
         );
 
-
         if (student.rows.length === 0) {
-
             return res.status(404).json({
                 error: "البريد الإلكتروني غير موجود"
             });
-
         }
-
 
         await db.query(
             `UPDATE public.students
@@ -267,20 +229,16 @@ router.put("/reset-password", async (req, res) => {
             ]
         );
 
-
         res.json({
             message: "تم تغيير كلمة المرور بنجاح"
         });
 
-
     } catch (error) {
-
         console.error(error);
 
         res.status(500).json({
             error: "حدث خطأ في تغيير كلمة المرور"
         });
-
     }
 });
 
@@ -303,21 +261,16 @@ router.post("/", async (req, res) => {
             seat_number
         } = req.body;
 
-
         const student_id =
             req.body.student_id ||
             req.body.student_id_number ||
             req.body.student_number;
 
-
         if (!student_id) {
-
             return res.status(400).json({
                 error: "رقم الطالب مطلوب"
             });
-
         }
-
 
         const result = await db.query(
             `INSERT INTO public.students
@@ -347,18 +300,14 @@ router.post("/", async (req, res) => {
             ]
         );
 
-
         res.status(201).json(result.rows[0]);
 
-
     } catch (error) {
-
         console.error(error);
 
         res.status(500).json({
             error: "Database error"
         });
-
     }
 });
 
@@ -382,7 +331,6 @@ router.put("/:id", async (req, res) => {
             academic_year,
             seat_number
         } = req.body;
-
 
         const result = await db.query(
             `UPDATE public.students
@@ -410,27 +358,20 @@ router.put("/:id", async (req, res) => {
             ]
         );
 
-
         if (result.rows.length === 0) {
-
             return res.status(404).json({
                 error: "Student not found"
             });
-
         }
-
 
         res.json(result.rows[0]);
 
-
     } catch (error) {
-
         console.error(error);
 
         res.status(500).json({
             error: "Database error"
         });
-
     }
 });
 
@@ -444,21 +385,16 @@ router.delete("/:id", async (req, res) => {
 
         const { id } = req.params;
 
-
         const result = await db.query(
             "DELETE FROM public.students WHERE id = $1 RETURNING *",
             [id]
         );
 
-
         if (result.rows.length === 0) {
-
             return res.status(404).json({
                 error: "Student not found"
             });
-
         }
-
 
         res.json({
             message: "Student deleted successfully",
@@ -466,16 +402,13 @@ router.delete("/:id", async (req, res) => {
         });
 
     } catch (error) {
-
         console.error(error);
 
         res.status(500).json({
             error: "Database error"
         });
-
     }
 });
-
-
 module.exports = router;
 
+module.exports = router;
