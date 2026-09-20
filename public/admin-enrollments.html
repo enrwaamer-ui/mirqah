@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>تسجيل الطلاب في المواد - مِرقاة</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            color: #222;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1200px;
+            margin: 30px auto;
+        }
+
+        .header,
+        .card {
+            background: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+        }
+
+        h1,
+        h2 {
+            margin-top: 0;
+        }
+
+        .header p {
+            color: #666;
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 18px;
+            background: #6c757d;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 7px;
+        }
+
+        select,
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        button {
+            border: none;
+            padding: 11px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .add-btn {
+            background: #198754;
+            color: white;
+            margin-top: 20px;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        .message {
+            display: none;
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .success {
+            display: block;
+            background: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .error {
+            display: block;
+            background: #f8d7da;
+            color: #842029;
+        }
+
+        .search {
+            margin-bottom: 20px;
+        }
+
+        .search input {
+            width: 100%;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 850px;
+        }
+
+        th,
+        td {
+            padding: 13px 10px;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+        }
+
+        th {
+            background: #f1f3f5;
+        }
+
+        .empty {
+            padding: 25px;
+            color: #777;
+        }
+
+        .count {
+            margin-bottom: 15px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        @media (max-width: 700px) {
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                width: 92%;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+
+    <!-- العنوان -->
+
+    <div class="header">
+
+        <h1>
+            👨‍🎓📚 تسجيل الطلاب في المواد
+        </h1>
+
+        <p>
+            تسجيل الطالب في المادة حتى تظهر له المحاضرات والامتحانات الخاصة بها
+        </p>
+
+        <a
+            href="dashboard.html"
+            class="back-btn"
+        >
+            العودة للوحة التحكم
+        </a>
+
+    </div>
+
+
+    <!-- تسجيل جديد -->
+
+    <div class="card">
+
+        <h2>
+            ➕ تسجيل طالب في مادة
+        </h2>
+
+
+        <div class="form-grid">
+
+
+            <div class="field">
+
+                <label for="student">
+                    الطالب
+                </label>
+
+                <select id="student">
+
+                    <option value="">
+                        جاري تحميل الطلاب...
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="field">
+
+                <label for="subject">
+                    المادة
+                </label>
+
+                <select id="subject">
+
+                    <option value="">
+                        جاري تحميل المواد...
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="field">
+
+                <label for="academicYear">
+                    السنة الدراسية
+                </label>
+
+                <input
+                    type="text"
+                    id="academicYear"
+                    placeholder="مثال: 2026/2027"
+                >
+
+            </div>
+
+
+            <div class="field">
+
+                <label for="semester">
+                    الفصل الدراسي
+                </label>
+
+                <select id="semester">
+
+                    <option value="">
+                        اختاري الفصل
+                    </option>
+
+                    <option value="الأول">
+                        الفصل الأول
+                    </option>
+
+                    <option value="الثاني">
+                        الفصل الثاني
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="field">
+
+                <label for="status">
+                    الحالة
+                </label>
+
+                <select id="status">
+
+                    <option value="active">
+                        نشط
+                    </option>
+
+                    <option value="inactive">
+                        غير نشط
+                    </option>
+
+                </select>
+
+            </div>
+
+
+        </div>
+
+
+        <button
+            class="add-btn"
+            onclick="addEnrollment()"
+        >
+            تسجيل الطالب في المادة
+        </button>
+
+
+        <div
+            id="message"
+            class="message"
+        ></div>
+
+    </div>
+
+
+    <!-- التسجيلات -->
+
+    <div class="card">
+
+        <h2>
+            📋 التسجيلات الحالية
+        </h2>
+
+
+        <div class="search">
+
+            <input
+                type="text"
+                id="search"
+                placeholder="🔎 ابحث باسم الطالب أو المادة..."
+                oninput="filterEnrollments()"
+            >
+
+        </div>
+
+
+        <div
+            id="count"
+            class="count"
+        >
+            جاري تحميل التسجيلات...
+        </div>
+
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            الطالب
+                        </th>
+
+                        <th>
+                            رقم الطالب
+                        </th>
+
+                        <th>
+                            المادة
+                        </th>
+
+                        <th>
+                            السنة
+                        </th>
+
+                        <th>
+                            الفصل
+                        </th>
+
+                        <th>
+                            الحالة
+                        </th>
+
+                        <th>
+                            حذف
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="enrollmentsTable">
+
+                    <tr>
+
+                        <td
+                            colspan="7"
+                            class="empty"
+                        >
+                            جاري تحميل التسجيلات...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+</div>
+
+
+<script>
+
+    let enrollments = [];
+
+
+    const studentSelect =
+        document.getElementById("student");
+
+    const subjectSelect =
+        document.getElementById("subject");
+
+    const enrollmentsTable =
+        document.getElementById("enrollmentsTable");
+
+    const count =
+        document.getElementById("count");
+
+    const message =
+        document.getElementById("message");
+
+
+    // ==========================================
+    // الرسائل
+    // ==========================================
+
+    function showMessage(text, type) {
+
+        message.textContent = text;
+
+        message.className =
+            "message " + type;
+
+
+        setTimeout(() => {
+
+            message.className =
+                "message";
+
+        }, 4000);
+
+    }
+
+
+    // ==========================================
+    // تحميل الطلاب
+    // ==========================================
+
+    async function loadStudents() {
+
+        try {
+
+            const response =
+                await fetch("/students");
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "فشل تحميل الطلاب"
+                );
+
+            }
+
+
+            const students =
+                await response.json();
+
+
+            studentSelect.innerHTML =
+                '<option value="">اختاري الطالب</option>';
+
+
+            students.forEach(student => {
+
+                const option =
+                    document.createElement("option");
+
+
+                option.value =
+                    student.id;
+
+
+                option.textContent =
+                    student.name +
+                    " - " +
+                    student.student_id;
+
+
+                studentSelect.appendChild(option);
+
+            });
+
+
+        } catch (error) {
+
+            console.error(error);
+
+
+            studentSelect.innerHTML =
+                '<option value="">خطأ في تحميل الطلاب</option>';
+
+        }
+
+    }
+
+
+    // ==========================================
+    // تحميل المواد
+    // ==========================================
+
+    async function loadSubjects() {
+
+        try {
+
+            const response =
+                await fetch("/subjects");
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "فشل تحميل المواد"
+                );
+
+            }
+
+
+            const subjects =
+                await response.json();
+
+
+            subjectSelect.innerHTML =
+                '<option value="">اختاري المادة</option>';
+
+
+            subjects.forEach(subject => {
+
+                const option =
+                    document.createElement("option");
+
+
+                option.value =
+                    subject.id;
+
+
+                option.textContent =
+                    subject.name +
+                    (
+                        subject.code
+                            ? " - " + subject.code
+                            : ""
+                    );
+
+
+                subjectSelect.appendChild(option);
+
+            });
+
+
+        } catch (error) {
+
+            console.error(error);
+
+
+            subjectSelect.innerHTML =
+                '<option value="">خطأ في تحميل المواد</option>';
+
+        }
+
+    }
+
+
+    // ==========================================
+    // تحميل التسجيلات
+    // ==========================================
+
+    async function loadEnrollments() {
+
+        try {
+
+            const response =
+                await fetch("/enrollments");
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "فشل تحميل التسجيلات"
+                );
+
+            }
+
+
+            enrollments =
+                await response.json();
+
+
+            renderEnrollments(
+                enrollments
+            );
+
+
+        } catch (error) {
+
+            console.error(error);
+
+
+            enrollmentsTable.innerHTML = `
+
+                <tr>
+
+                    <td
+                        colspan="7"
+                        class="empty"
+                    >
+                        حدث خطأ أثناء تحميل التسجيلات
+                    </td>
+
+                </tr>
+
+            `;
+
+
+            count.textContent =
+                "تعذر تحميل التسجيلات";
+
+        }
+
+    }
+
+
+    // ==========================================
+    // عرض التسجيلات
+    // ==========================================
+
+    function renderEnrollments(list) {
+
+        enrollmentsTable.innerHTML =
+            "";
+
+
+        count.textContent =
+            "عدد التسجيلات: " +
+            list.length;
+
+
+        if (list.length === 0) {
+
+            enrollmentsTable.innerHTML = `
+
+                <tr>
+
+                    <td
+                        colspan="7"
+                        class="empty"
+                    >
+                        لا توجد تسجيلات حالياً
+                    </td>
+
+                </tr>
+
+            `;
+
+            return;
+
+        }
+
+
+        list.forEach(enrollment => {
+
+            const row =
+                document.createElement("tr");
+
+
+            row.innerHTML = `
+
+                <td>
+                    ${escapeHtml(
+                        enrollment.student_name || "-"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHtml(
+                        enrollment.student_id || "-"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHtml(
+                        enrollment.subject_name || "-"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHtml(
+                        enrollment.academic_year || "-"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHtml(
+                        enrollment.semester || "-"
+                    )}
+                </td>
+
+                <td>
+                    ${enrollment.status === "active"
+                        ? "نشط"
+                        : "غير نشط"}
+                </td>
+
+                <td>
+
+                    <button
+                        class="delete-btn"
+                        onclick="deleteEnrollment(
+                            ${enrollment.id}
+                        )"
+                    >
+                        حذف
+                    </button>
+
+                </td>
+
+            `;
+
+
+            enrollmentsTable.appendChild(
+                row
+            );
+
+        });
+
+    }
+
+
+    // ==========================================
+    // البحث
+    // ==========================================
+
+    function filterEnrollments() {
+
+        const search =
+            document.getElementById("search")
+                .value
+                .trim()
+                .toLowerCase();
+
+
+        if (!search) {
+
+            renderEnrollments(
+                enrollments
+            );
+
+            return;
+
+        }
+
+
+        const filtered =
+            enrollments.filter(enrollment => {
+
+                const student =
+                    String(
+                        enrollment.student_name || ""
+                    ).toLowerCase();
+
+
+                const studentId =
+                    String(
+                        enrollment.student_id || ""
+                    ).toLowerCase();
+
+
+                const subject =
+                    String(
+                        enrollment.subject_name || ""
+                    ).toLowerCase();
+
+
+                return (
+                    student.includes(search) ||
+                    studentId.includes(search) ||
+                    subject.includes(search)
+                );
+
+            });
+
+
+        renderEnrollments(
+            filtered
+        );
+
+    }
+
+
+    // ==========================================
+    // إضافة تسجيل
+    // ==========================================
+
+    async function addEnrollment() {
+
+        const studentId =
+            studentSelect.value;
+
+
+        const subjectId =
+            subjectSelect.value;
+
+
+        const academicYear =
+            document.getElementById(
+                "academicYear"
+            ).value.trim();
+
+
+        const semester =
+            document.getElementById(
+                "semester"
+            ).value;
+
+
+        const status =
+            document.getElementById(
+                "status"
+            ).value;
+
+
+        if (!studentId) {
+
+            showMessage(
+                "اختاري الطالب أولاً",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        if (!subjectId) {
+
+            showMessage(
+                "اختاري المادة أولاً",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "/enrollments",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body: JSON.stringify({
+
+                            student_id:
+                                Number(studentId),
+
+                            subject_id:
+                                Number(subjectId),
+
+                            academic_year:
+                                academicYear || null,
+
+                            semester:
+                                semester || null,
+
+                            status:
+                                status
+
+                        })
+
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data.error ||
+                    "فشل تسجيل الطالب"
+                );
+
+            }
+
+
+            showMessage(
+                "تم تسجيل الطالب في المادة بنجاح ✅",
+                "success"
+            );
+
+
+            studentSelect.value =
+                "";
+
+            subjectSelect.value =
+                "";
+
+            document.getElementById(
+                "academicYear"
+            ).value = "";
+
+            document.getElementById(
+                "semester"
+            ).value = "";
+
+
+            await loadEnrollments();
+
+
+        } catch (error) {
+
+            console.error(error);
+
+
+            showMessage(
+                error.message ||
+                "حدث خطأ أثناء التسجيل",
+                "error"
+            );
+
+        }
+
+    }
+
+
+    // ==========================================
+    // حذف تسجيل
+    // ==========================================
+
+    async function deleteEnrollment(id) {
+
+        const confirmed =
+            confirm(
+                "هل أنتِ متأكدة من حذف تسجيل الطالب في هذه المادة؟"
+            );
+
+
+        if (!confirmed) {
+
+            return;
+
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "/enrollments/" + id,
+                    {
+                        method: "DELETE"
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data.error ||
+                    "فشل حذف التسجيل"
+                );
+
+            }
+
+
+            showMessage(
+                "تم حذف التسجيل بنجاح ✅",
+                "success"
+            );
+
+
+            await loadEnrollments();
+
+
+        } catch (error) {
+
+            console.error(error);
+
+
+            showMessage(
+                error.message ||
+                "حدث خطأ أثناء حذف التسجيل",
+                "error"
+            );
+
+        }
+
+    }
+
+
+    // ==========================================
+    // حماية النصوص
+    // ==========================================
+
+    function escapeHtml(value) {
+
+        return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+
+    }
+
+
+    // ==========================================
+    // تشغيل الصفحة
+    // ==========================================
+
+    loadStudents();
+
+    loadSubjects();
+
+    loadEnrollments();
+
+</script>
+
+
+</body>
+
+</html>
