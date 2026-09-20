@@ -2,13 +2,11 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db");
 
-
-// ============================================
-// عرض كل التسجيلات مع اسم الطالب والمادة
-// ============================================
+// =========================
+// عرض كل التسجيلات
+// =========================
 router.get("/", async (req, res) => {
     try {
-
         const result = await db.query(
             `SELECT
                 enrollments.id,
@@ -18,9 +16,9 @@ router.get("/", async (req, res) => {
                 enrollments.subject_id,
                 subjects.name AS subject_name,
                 subjects.code AS subject_code,
-                enrollments.academic_year,
-                enrollments.semester,
-                enrollments.status
+                enrollments.lecture_id,
+                enrollments.status,
+                enrollments.created_at
              FROM public.enrollments
              JOIN public.students
                 ON enrollments.student_id = students.id
@@ -32,23 +30,19 @@ router.get("/", async (req, res) => {
         res.json(result.rows);
 
     } catch (error) {
-
-        console.error(error);
-
+        console.error("GET /enrollments error:", error);
         res.status(500).json({
             error: "Database error"
         });
-
     }
 });
 
 
-// ============================================
+// =========================
 // عرض تسجيل واحد
-// ============================================
+// =========================
 router.get("/:id", async (req, res) => {
     try {
-
         const { id } = req.params;
 
         const result = await db.query(
@@ -59,9 +53,9 @@ router.get("/:id", async (req, res) => {
                 enrollments.subject_id,
                 subjects.name AS subject_name,
                 subjects.code AS subject_code,
-                enrollments.academic_year,
-                enrollments.semester,
-                enrollments.status
+                enrollments.lecture_id,
+                enrollments.status,
+                enrollments.created_at
              FROM public.enrollments
              JOIN public.students
                 ON enrollments.student_id = students.id
@@ -72,52 +66,41 @@ router.get("/:id", async (req, res) => {
         );
 
         if (result.rows.length === 0) {
-
             return res.status(404).json({
                 error: "Enrollment not found"
             });
-
         }
 
         res.json(result.rows[0]);
 
     } catch (error) {
-
-        console.error(error);
-
+        console.error("GET /enrollments/:id error:", error);
         res.status(500).json({
             error: "Database error"
         });
-
     }
 });
 
 
-// ============================================
-// إضافة تسجيل جديد
-// ============================================
+// =========================
+// إضافة تسجيل طالب في مادة
+// =========================
 router.post("/", async (req, res) => {
     try {
-
         const {
             student_id,
             subject_id,
-            academic_year,
-            semester,
+            lecture_id,
             status
         } = req.body;
 
-
         if (!student_id || !subject_id) {
-
             return res.status(400).json({
                 error: "الطالب والمادة مطلوبان"
             });
-
         }
 
-
-        // التأكد أن الطالب موجود
+        // التأكد من وجود الطالب
         const student = await db.query(
             `SELECT id
              FROM public.students
@@ -125,17 +108,13 @@ router.post("/", async (req, res) => {
             [student_id]
         );
 
-
         if (student.rows.length === 0) {
-
             return res.status(404).json({
                 error: "الطالب غير موجود"
             });
-
         }
 
-
-        // التأكد أن المادة موجودة
+        // التأكد من وجود المادة
         const subject = await db.query(
             `SELECT id
              FROM public.subjects
@@ -143,17 +122,13 @@ router.post("/", async (req, res) => {
             [subject_id]
         );
 
-
         if (subject.rows.length === 0) {
-
             return res.status(404).json({
                 error: "المادة غير موجودة"
             });
-
         }
 
-
-        // منع التسجيل المكرر
+        // منع تسجيل نفس الطالب في نفس المادة مرتين
         const existing = await db.query(
             `SELECT id
              FROM public.enrollments
@@ -162,118 +137,163 @@ router.post("/", async (req, res) => {
             [student_id, subject_id]
         );
 
-
         if (existing.rows.length > 0) {
-
             return res.status(400).json({
                 error: "الطالب مسجل في هذه المادة بالفعل"
             });
-
         }
 
+        let result;
 
-        const result = await db.query(
-            `INSERT INTO public.enrollments
-            (
-                student_id,
-                subject_id,
-                academic_year,
-                semester,
-                status
-            )
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING *`,
-            [
-                student_id,
-                subject_id,
-                academic_year || null,
-                semester || null,
-                status || "active"
-            ]
-        );
+        // إذا تم اختيار محاضرة
+        if (lecture_id) {
+            const lecture = await db.query(
+                `SELECT id
+                 FROM public.lectures
+                 WHERE id = $1`,
+                [lecture_id]
+            );
 
+            if (lecture.rows.length === 0) {
+                return res.status(404).json({
+                    error: "المحاضرة غير موجودة"
+                });
+            }
+
+            result = await db.query(
+                `INSERT INTO public.enrollments
+                (
+                    student_id,
+                    lecture_id,
+                    subject_id,
+                    status
+                )
+                VALUES ($1, $2, $3, $4)
+                RETURNING *`,
+                [
+                    student_id,
+                    lecture_id,
+                    subject_id,
+                    status || "active"
+                ]
+            );
+
+        } else {
+            // التسجيل في المادة بدون تحديد محاضرة
+            result = await db.query(
+                `INSERT INTO public.enrollments
+                (
+                    student_id,
+                    subject_id,
+                    status
+                )
+                VALUES ($1, $2, $3)
+                RETURNING *`,
+                [
+                    student_id,
+                    subject_id,
+                    status || "active"
+                ]
+            );
+        }
 
         res.status(201).json(result.rows[0]);
 
     } catch (error) {
-
-        console.error(error);
-
+        console.error("POST /enrollments error:", error);
         res.status(500).json({
             error: "Database error"
         });
-
     }
 });
 
 
-// ============================================
+// =========================
 // تعديل تسجيل
-// ============================================
+// =========================
 router.put("/:id", async (req, res) => {
     try {
-
         const { id } = req.params;
 
         const {
             student_id,
             subject_id,
-            academic_year,
-            semester,
+            lecture_id,
             status
         } = req.body;
 
+        if (!student_id || !subject_id) {
+            return res.status(400).json({
+                error: "الطالب والمادة مطلوبان"
+            });
+        }
+
+        const student = await db.query(
+            `SELECT id
+             FROM public.students
+             WHERE id = $1`,
+            [student_id]
+        );
+
+        if (student.rows.length === 0) {
+            return res.status(404).json({
+                error: "الطالب غير موجود"
+            });
+        }
+
+        const subject = await db.query(
+            `SELECT id
+             FROM public.subjects
+             WHERE id = $1`,
+            [subject_id]
+        );
+
+        if (subject.rows.length === 0) {
+            return res.status(404).json({
+                error: "المادة غير موجودة"
+            });
+        }
 
         const result = await db.query(
             `UPDATE public.enrollments
              SET
                 student_id = $1,
-                subject_id = $2,
-                academic_year = $3,
-                semester = $4,
-                status = $5
-             WHERE id = $6
+                lecture_id = $2,
+                subject_id = $3,
+                status = $4
+             WHERE id = $5
              RETURNING *`,
             [
                 student_id,
+                lecture_id || null,
                 subject_id,
-                academic_year,
-                semester,
-                status,
+                status || "active",
                 id
             ]
         );
 
-
         if (result.rows.length === 0) {
-
             return res.status(404).json({
                 error: "Enrollment not found"
             });
-
         }
-
 
         res.json(result.rows[0]);
 
     } catch (error) {
-
-        console.error(error);
-
+        console.error("PUT /enrollments/:id error:", error);
         res.status(500).json({
             error: "Database error"
         });
-
     }
 });
 
 
-// ============================================
+// =========================
 // حذف تسجيل
-// ============================================
+// =========================
 router.delete("/:id", async (req, res) => {
     try {
-
         const { id } = req.params;
 
         const result = await db.query(
@@ -283,15 +303,11 @@ router.delete("/:id", async (req, res) => {
             [id]
         );
 
-
         if (result.rows.length === 0) {
-
             return res.status(404).json({
                 error: "Enrollment not found"
             });
-
         }
-
 
         res.json({
             message: "Enrollment deleted successfully",
@@ -299,13 +315,10 @@ router.delete("/:id", async (req, res) => {
         });
 
     } catch (error) {
-
-        console.error(error);
-
+        console.error("DELETE /enrollments/:id error:", error);
         res.status(500).json({
             error: "Database error"
         });
-
     }
 });
 
