@@ -9,10 +9,17 @@ router.get("/", async (req, res) => {
         const { student_id } = req.query;
 
         const result = await db.query(
-           ` SELECT *
+            `SELECT
+                id,
+                student_id,
+                title,
+                message,
+                is_read,
+                created_at,
+                created_at AS notification_time
              FROM public.notifications
              WHERE student_id = $1
-             ORDER BY notification_time DESC`,
+             ORDER BY created_at DESC`,
             [student_id]
         );
 
@@ -20,6 +27,7 @@ router.get("/", async (req, res) => {
 
     } catch (error) {
         console.error(error);
+
         res.status(500).json({
             error: "Database error"
         });
@@ -30,7 +38,8 @@ router.get("/", async (req, res) => {
 // عدد الإشعارات غير المقروءة
 router.get("/count", async (req, res) => {
     try {
-        const{student_id } = req.query;
+        const { student_id } = req.query;
+
         const result = await db.query(
             `SELECT COUNT(*) AS count
              FROM public.notifications
@@ -45,6 +54,7 @@ router.get("/count", async (req, res) => {
 
     } catch (error) {
         console.error(error);
+
         res.status(500).json({
             error: "Database error"
         });
@@ -58,16 +68,30 @@ router.get("/:id", async (req, res) => {
         const { id } = req.params;
 
         const result = await db.query(
-           ` SELECT *
+            `SELECT
+                id,
+                student_id,
+                title,
+                message,
+                is_read,
+                created_at,
+                created_at AS notification_time
              FROM public.notifications
-             WHERE id = $1,
-            [id]`
+             WHERE id = $1`,
+            [id]
         );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                error: "Notification not found"
+            });
+        }
 
         res.json(result.rows[0]);
 
     } catch (error) {
         console.error(error);
+
         res.status(500).json({
             error: "Database error"
         });
@@ -80,30 +104,29 @@ router.post("/", async (req, res) => {
     try {
         const {
             student_id,
-            lecture_id,
+            title,
             message,
-            notification_time,
             is_read
         } = req.body;
 
         const result = await db.query(
-           ` INSERT INTO public.notifications
-            (student_id, lecture_id, message, notification_time, is_read)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING *,
+            `INSERT INTO public.notifications
+            (student_id, title, message, is_read)
+            VALUES ($1, $2, $3, $4)
+            RETURNING *`,
             [
                 student_id,
-                lecture_id,
+                title,
                 message,
-                notification_time,
                 is_read || false
-            ]`
+            ]
         );
 
         res.status(201).json(result.rows[0]);
 
     } catch (error) {
         console.error(error);
+
         res.status(500).json({
             error: "Database error"
         });
@@ -115,57 +138,45 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
     try {
         const { id } = req.params;
+
         const {
+            title,
             message,
             is_read
         } = req.body;
 
         const result = await db.query(
             `UPDATE public.notifications
-             SET message = $1,
-                 is_read = $2
-             WHERE id = $3
-             RETURNING *,
+             SET title = $1,
+                 message = $2,
+                 is_read = $3
+             WHERE id = $4
+             RETURNING *`,
             [
+                title,
                 message,
                 is_read,
                 id
-            ]`
+            ]
         );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                error: "Notification not found"
+            });
+        }
 
         res.json(result.rows[0]);
 
     } catch (error) {
         console.error(error);
+
         res.status(500).json({
             error: "Database error"
         });
     }
 });
 
-
-// حذف إشعار
-router.delete("/:id", async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        await db.query(
-           ` DELETE FROM public.notifications
-             WHERE id = $1,
-            [id]`
-        );
-
-        res.json({
-            message: "Notification deleted"
-        });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            error: "Database error"
-        });
-    }
-});
 
 // تحديد الإشعار كمقروء
 router.put("/:id/read", async (req, res) => {
@@ -187,6 +198,37 @@ router.put("/:id/read", async (req, res) => {
         }
 
         res.json(result.rows[0]);
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            error: "Database error"
+        });
+    }
+});
+
+
+// حذف إشعار
+router.delete("/:id", async (req, res) => {
+    try {
+        const result = await db.query(
+            `DELETE FROM public.notifications
+             WHERE id = $1
+             RETURNING *`,
+            [req.params.id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                error: "Notification not found"
+            });
+        }
+
+        res.json({
+            message: "Notification deleted",
+            notification: result.rows[0]
+        });
 
     } catch (error) {
         console.error(error);
