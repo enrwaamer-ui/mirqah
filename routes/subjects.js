@@ -2,7 +2,9 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db");
 
-// عرض المواد الخاصة بالطالب
+
+
+// عرض مواد الطالب
 router.get("/", async (req, res) => {
     try {
         const { student_id } = req.query;
@@ -11,13 +13,13 @@ router.get("/", async (req, res) => {
             `SELECT 
                 subjects.id,
                 subjects.name,
-                subjects.code,
-                subjects.credit_hours
+                subjects.code
              FROM public.subjects
              JOIN public.enrollments
-             ON subjects.id = enrollments.subject_id
+                ON subjects.id = enrollments.subject_id
              WHERE enrollments.student_id = $1
-             AND enrollments.status = 'active'`,
+             AND enrollments.status = 'active'
+             ORDER BY subjects.name`,
             [student_id]
         );
 
@@ -31,8 +33,6 @@ router.get("/", async (req, res) => {
         });
     }
 });
-
-
 
 
 
@@ -64,24 +64,23 @@ router.get("/:id", async (req, res) => {
 });
 
 
+
 // إضافة مادة جديدة
 router.post("/", async (req, res) => {
     try {
         const {
             name,
-            code,
-            credit_hours
+            code
         } = req.body;
 
         const result = await db.query(
             `INSERT INTO public.subjects
-            (name, code, credit_hours)
-            VALUES ($1, $2, $3)
+            (name, code)
+            VALUES ($1, $2)
             RETURNING *`,
             [
                 name,
-                code,
-                credit_hours
+                code
             ]
         );
 
@@ -97,6 +96,7 @@ router.post("/", async (req, res) => {
 });
 
 
+
 // تعديل مادة
 router.put("/:id", async (req, res) => {
     try {
@@ -104,21 +104,18 @@ router.put("/:id", async (req, res) => {
 
         const {
             name,
-            code,
-            credit_hours
+            code
         } = req.body;
 
         const result = await db.query(
             `UPDATE public.subjects
-            SET name = $1,
-                code = $2,
-                credit_hours = $3
-            WHERE id = $4
-            RETURNING *`,
+             SET name = $1,
+                 code = $2
+             WHERE id = $3
+             RETURNING *`,
             [
                 name,
                 code,
-                credit_hours,
                 id
             ]
         );
@@ -141,14 +138,13 @@ router.put("/:id", async (req, res) => {
 });
 
 
+
 // حذف مادة
 router.delete("/:id", async (req, res) => {
     try {
-        const { id } = req.params;
-
         const result = await db.query(
             "DELETE FROM public.subjects WHERE id = $1 RETURNING *",
-            [id]
+            [req.params.id]
         );
 
         if (result.rows.length === 0) {
@@ -170,6 +166,7 @@ router.delete("/:id", async (req, res) => {
         });
     }
 });
+
 
 
 module.exports = router;
