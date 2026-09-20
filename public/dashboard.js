@@ -78,7 +78,56 @@ if (!studentData) {
         });
 
 
+    // =========================
+    // تنسيق التاريخ
+    // =========================
+    function formatDate(dateValue) {
+
+        if (!dateValue) {
+            return "غير محدد";
+        }
+
+        const date = new Date(dateValue);
+
+        if (isNaN(date.getTime())) {
+            return "غير محدد";
+        }
+
+        return date.toLocaleDateString("ar-LY", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric"
+        });
+    }
+
+
+    // =========================
+    // تنسيق الوقت
+    // =========================
+    function formatTime(timeValue) {
+
+        if (!timeValue) {
+            return "غير محدد";
+        }
+
+        // لو الوقت جاي بالشكل:
+        // 08:00:00
+        // نخليه:
+        // 08:00
+        const match = String(timeValue).match(/^(\d{2}):(\d{2})/);
+
+        if (match) {
+            return `${match[1]}:${match[2]}`;
+        }
+
+        return timeValue;
+    }
+
+
+    // =========================
     // المحاضرة القادمة
+    // =========================
     fetch(`/lectures/next?student_id=${student.id}`)
         .then(response => response.json())
         .then(lecture => {
@@ -86,7 +135,8 @@ if (!studentData) {
             const nextLecture =
                 document.getElementById("nextLecture");
 
-            if (!lecture) {
+
+            if (!lecture || lecture.error) {
 
                 nextLecture.innerHTML =
                     "<p>مافيش محاضرات قادمة حاليًا.</p>";
@@ -94,30 +144,52 @@ if (!studentData) {
                 return;
             }
 
+
+            const lectureDate =
+                formatDate(lecture.lecture_date);
+
+
+            const startTime =
+                formatTime(lecture.start_time);
+
+
+            const endTime =
+                formatTime(lecture.end_time);
+
+
+            const hall =
+                lecture.hall ||
+                lecture.room ||
+                "غير محددة";
+
+
             nextLecture.innerHTML = `
-                <h3>${lecture.title}</h3>
+
+                <h3>
+                    ${lecture.title || "محاضرة"}
+                </h3>
 
                 <p>
                     📚 المادة:
-                    ${lecture.subject_name}
+                    ${lecture.subject_name || "غير محددة"}
                 </p>
 
                 <p>
                     📅 التاريخ:
-                    ${lecture.lecture_date}
+                    ${lectureDate}
                 </p>
 
                 <p>
                     🕐 الوقت:
-                    ${lecture.start_time} -
-                    ${lecture.end_time}
+                    ${startTime} - ${endTime}
                 </p>
 
                 <p>
                     📍 القاعة:
-                    ${lecture.room}
+                    ${hall}
                 </p>
-           ` ;
+
+            `;
 
         })
         .catch(error => {
@@ -132,8 +204,9 @@ if (!studentData) {
 }
 
 
-
+// =========================
 // تسجيل الخروج
+// =========================
 function logout() {
 
     localStorage.removeItem("student");
