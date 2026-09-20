@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>إدارة المحاضرات - مِرقاة</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+
+        .admin-container {
+            max-width: 950px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        .admin-card {
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 20px;
+        }
+
+        .admin-card h1,
+        .admin-card h2 {
+            margin-top: 0;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: bold;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        .add-button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            background: #2563eb;
+            color: white;
+        }
+
+        .lectures-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .lecture-item {
+            padding: 20px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.08);
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            gap: 20px;
+        }
+
+        .lecture-info {
+            flex: 1;
+        }
+
+        .lecture-info h3 {
+            margin: 0 0 10px;
+        }
+
+        .lecture-info p {
+            margin: 6px 0;
+            opacity: 0.85;
+        }
+
+        .delete-button {
+            display: block;
+            flex-shrink: 0;
+
+            border: none;
+            padding: 12px 18px;
+
+            border-radius: 10px;
+
+            cursor: pointer;
+
+            background: #dc2626;
+            color: white;
+
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        .delete-button:hover {
+            opacity: 0.85;
+        }
+
+        .message {
+            margin-top: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .empty {
+            text-align: center;
+            opacity: 0.7;
+            padding: 20px;
+        }
+
+        @media (max-width: 600px) {
+
+            .lecture-item {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .delete-button {
+                width: 100%;
+            }
+
+        }
+
+    </style>
+</head>
+
+
+<body>
+
+
+<header class="topbar">
+
+    <div class="logo-small">
+        مِرقاة
+    </div>
+
+    <a href="dashboard.html">
+        الرئيسية
+    </a>
+
+</header>
+
+
+
+<main class="admin-container">
+
+
+    <!-- إضافة محاضرة -->
+
+    <div class="admin-card dashboard-card">
+
+        <h1>
+            🎓 إدارة المحاضرات
+        </h1>
+
+        <p>
+            من هنا تقدري تضيفي جدول المحاضرات ومواعيدها.
+        </p>
+
+
+        <form id="lectureForm">
+
+
+            <!-- المادة -->
+
+            <div class="form-group">
+
+                <label for="subjectId">
+                    📚 المادة
+                </label>
+
+                <select
+                    id="subjectId"
+                    required
+                >
+
+                    <option value="">
+                        جاري تحميل المواد...
+                    </option>
+
+                </select>
+
+            </div>
+
+
+
+            <!-- عنوان المحاضرة -->
+
+            <div class="form-group">
+
+                <label for="lectureTitle">
+                    📝 عنوان المحاضرة
+                </label>
+
+                <input
+                    type="text"
+                    id="lectureTitle"
+                    placeholder="مثلاً: المحاضرة الثالثة"
+                    required
+                >
+
+            </div>
+
+
+
+            <!-- التاريخ -->
+
+            <div class="form-group">
+
+                <label for="lectureDate">
+                    📅 التاريخ
+                </label>
+
+                <input
+                    type="date"
+                    id="lectureDate"
+                    required
+                >
+
+            </div>
+
+
+
+            <!-- وقت البداية -->
+
+            <div class="form-group">
+
+                <label for="startTime">
+                    🕐 وقت البداية
+                </label>
+
+                <input
+                    type="time"
+                    id="startTime"
+                    required
+                >
+
+            </div>
+
+
+
+            <!-- وقت النهاية -->
+
+            <div class="form-group">
+
+                <label for="endTime">
+                    🕐 وقت النهاية
+                </label>
+
+                <input
+                    type="time"
+                    id="endTime"
+                    required
+                >
+
+            </div>
+
+
+
+            <!-- القاعة -->
+
+            <div class="form-group">
+
+                <label for="hall">
+                    🏫 القاعة
+                </label>
+
+                <input
+                    type="text"
+                    id="hall"
+                    placeholder="مثلاً: قاعة 3"
+                    required
+                >
+
+            </div>
+
+
+
+            <button
+                type="submit"
+                class="add-button"
+            >
+                ➕ إضافة المحاضرة
+            </button>
+
+
+        </form>
+
+
+        <div
+            id="message"
+            class="message"
+        ></div>
+
+    </div>
+
+
+
+    <!-- المحاضرات الموجودة -->
+
+    <div class="admin-card dashboard-card">
+
+        <h2>
+            📋 المحاضرات الموجودة
+        </h2>
+
+
+        <div
+            id="lecturesList"
+            class="lectures-list"
+        >
+
+            <p class="empty">
+                جاري تحميل المحاضرات...
+            </p>
+
+        </div>
+
+    </div>
+
+
+</main>
+
+
+
+<script>
+
+
+const lectureForm =
+    document.getElementById("lectureForm");
+
+const subjectId =
+    document.getElementById("subjectId");
+
+const lectureTitle =
+    document.getElementById("lectureTitle");
+
+const lectureDate =
+    document.getElementById("lectureDate");
+
+const startTime =
+    document.getElementById("startTime");
+
+const endTime =
+    document.getElementById("endTime");
+
+const hall =
+    document.getElementById("hall");
+
+const lecturesList =
+    document.getElementById("lecturesList");
+
+const message =
+    document.getElementById("message");
+
+
+
+// ==========================================
+// تحميل المواد
+// ==========================================
+
+async function loadSubjects() {
+
+    try {
+
+        const response =
+            await fetch("/subjects");
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "فشل تحميل المواد"
+            );
+
+        }
+
+
+        const subjects =
+            await response.json();
+
+
+        subjectId.innerHTML = `
+            <option value="">
+                اختاري المادة
+            </option>
+        `;
+
+
+        if (
+            !Array.isArray(subjects) ||
+            subjects.length === 0
+        ) {
+
+            subjectId.innerHTML = `
+                <option value="">
+                    مافيش مواد مضافة
+                </option>
+            `;
+
+            return;
+        }
+
+
+        subjects.forEach(subject => {
+
+            const option =
+                document.createElement("option");
+
+
+            option.value =
+                subject.id;
+
+
+            option.textContent =
+                `${subject.name} - ${subject.code}`;
+
+
+            subjectId.appendChild(option);
+
+        });
+
+
+    } catch (error) {
+
+        console.error(error);
+
+
+        subjectId.innerHTML = `
+            <option value="">
+                ❌ حدث خطأ في تحميل المواد
+            </option>
+        `;
+
+    }
+
+}
+
+
+
+// ==========================================
+// تحميل المحاضرات
+// ==========================================
+
+async function loadLectures() {
+
+    try {
+
+        const response =
+            await fetch("/lectures");
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "فشل تحميل المحاضرات"
+            );
+
+        }
+
+
+        const lectures =
+            await response.json();
+
+
+        lecturesList.innerHTML = "";
+
+
+        if (
+            !Array.isArray(lectures) ||
+            lectures.length === 0
+        ) {
+
+            lecturesList.innerHTML = `
+                <p class="empty">
+                    مافيش محاضرات مضافة حالياً.
+                </p>
+            `;
+
+            return;
+        }
+
+
+        lectures.forEach(lecture => {
+
+            const item =
+                document.createElement("div");
+
+
+            item.className =
+                "lecture-item";
+
+
+            item.innerHTML = `
+
+                <div class="lecture-info">
+
+                    <h3>
+                        🎓 ${lecture.title}
+                    </h3>
+
+                    <p>
+                        📚 المادة:
+                        ${lecture.subject_name}
+                    </p>
+
+                    <p>
+                        📅 التاريخ:
+                        ${lecture.lecture_date}
+                    </p>
+
+                    <p>
+                        🕐 الوقت:
+                        ${lecture.start_time}
+                        -
+                        ${lecture.end_time}
+                    </p>
+
+                    <p>
+                        🏫 القاعة:
+                        ${lecture.hall}
+                    </p>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="delete-button"
+                    onclick="deleteLecture(${lecture.id})"
+                >
+                    🗑️ حذف المحاضرة
+                </button>
+
+            `;
+
+
+            lecturesList.appendChild(item);
+
+        });
+
+
+    } catch (error) {
+
+        console.error(error);
+
+
+        lecturesList.innerHTML = `
+            <p class="empty">
+                ❌ حدث خطأ في تحميل المحاضرات.
+            </p>
+        `;
+
+    }
+
+}
+
+
+
+// ==========================================
+// إضافة محاضرة
+// ==========================================
+
+lectureForm.addEventListener(
+    "submit",
+    async function(event) {
+
+        event.preventDefault();
+
+
+        // التأكد من الوقت
+
+        if (
+            endTime.value <=
+            startTime.value
+        ) {
+
+            message.textContent =
+                "❌ وقت النهاية لازم يكون بعد وقت البداية.";
+
+            return;
+        }
+
+
+        message.textContent =
+            "جاري إضافة المحاضرة...";
+
+
+        try {
+
+            const response =
+                await fetch("/lectures", {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        subject_id:
+                            subjectId.value,
+
+                        title:
+                            lectureTitle.value.trim(),
+
+                        lecture_date:
+                            lectureDate.value,
+
+                        start_time:
+                            startTime.value,
+
+                        end_time:
+                            endTime.value,
+
+                        hall:
+                            hall.value.trim()
+
+                    })
+
+                });
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data.error ||
+                    "حدث خطأ أثناء إضافة المحاضرة"
+                );
+
+            }
+
+
+            message.textContent =
+                "✅ تمت إضافة المحاضرة بنجاح";
+
+
+            lectureForm.reset();
+
+
+            loadLectures();
+
+
+        } catch (error) {
+
+            console.error(error);
+
+
+            message.textContent =
+                "❌ " + error.message;
+
+        }
+
+    }
+);
+
+
+
+// ==========================================
+// حذف محاضرة
+// ==========================================
+
+async function deleteLecture(id) {
+
+    const confirmed =
+        confirm(
+            "⚠️ هل متأكدة إنك تبي تحذفي هذه المحاضرة؟"
+        );
+
+
+    if (!confirmed) {
+        return;
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                `/lectures/${id}`,
+                {
+                    method: "DELETE"
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "حدث خطأ أثناء حذف المحاضرة"
+            );
+
+        }
+
+
+        message.textContent =
+            "✅ تم حذف المحاضرة بنجاح";
+
+
+        loadLectures();
+
+
+    } catch (error) {
+
+        console.error(error);
+
+
+        message.textContent =
+            "❌ " + error.message;
+
+    }
+
+}
+
+
+
+// ==========================================
+// تشغيل الصفحة
+// ==========================================
+
+loadSubjects();
+
+loadLectures();
+
+
+</script>
+
+
+</body>
+
+</html>
