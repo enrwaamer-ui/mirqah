@@ -1,29 +1,55 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>إدارة المواد - مِرقاة</title>
 
-    <link rel="stylesheet" href="style.css">
-
     <style>
-        .admin-container {
-            max-width: 900px;
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f7fb;
+            color: #222;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1100px;
             margin: 30px auto;
+        }
+
+        .header {
+            background: white;
             padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
         }
 
-        .admin-card {
-            padding: 25px;
-            margin-bottom: 25px;
-            border-radius: 20px;
+        .header h1 {
+            margin: 0 0 8px;
         }
 
-        .admin-card h1,
-        .admin-card h2 {
+        .header p {
+            margin: 0;
+            color: #666;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .card h2 {
             margin-top: 0;
         }
 
@@ -31,490 +57,575 @@
             margin-bottom: 15px;
         }
 
-        .form-group label {
+        label {
             display: block;
             margin-bottom: 7px;
             font-weight: bold;
         }
 
-        .form-group input {
+        input {
             width: 100%;
-            box-sizing: border-box;
             padding: 12px;
-            border-radius: 10px;
-            border: 1px solid #ccc;
+            border: 1px solid #ddd;
+            border-radius: 8px;
             font-size: 16px;
         }
 
-        .add-button {
-            width: 100%;
-            padding: 14px;
+        button {
             border: none;
-            border-radius: 10px;
+            border-radius: 8px;
+            padding: 11px 18px;
             cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            background: #2563eb;
-            color: white;
-        }
-
-        .subjects-list {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .subject-item {
-            padding: 18px;
-            border-radius: 15px;
-            background: rgba(255, 255, 255, 0.08);
-
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-
-            gap: 20px;
-        }
-
-        .subject-info {
-            flex: 1;
-        }
-
-        .subject-info h3 {
-            margin: 0 0 8px;
-        }
-
-        .subject-info p {
-            margin: 0;
-            opacity: 0.8;
-        }
-
-        .delete-button {
-            display: block;
-
-            flex-shrink: 0;
-
-            border: none;
-            padding: 12px 18px;
-
-            border-radius: 10px;
-
-            cursor: pointer;
-
-            background: #dc2626;
-            color: white;
-
             font-size: 15px;
-            font-weight: bold;
         }
 
-        .delete-button:hover {
-            opacity: 0.85;
+        .add-btn {
+            background: #198754;
+            color: white;
+            width: 100%;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        .back-btn {
+            background: #6c757d;
+            color: white;
+            margin-bottom: 15px;
+        }
+
+        button:hover {
+            opacity: 0.9;
         }
 
         .message {
             margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .success {
+            display: block;
+            background: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .error {
+            display: block;
+            background: #f8d7da;
+            color: #842029;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
             text-align: center;
-            font-weight: bold;
+        }
+
+        th {
+            background: #f1f3f5;
         }
 
         .empty {
             text-align: center;
-            opacity: 0.7;
-            padding: 20px;
+            color: #777;
+            padding: 25px;
         }
 
-        @media (max-width: 600px) {
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
 
-            .subject-item {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .delete-button {
-                width: 100%;
-            }
-
+        .count {
+            font-weight: bold;
         }
     </style>
 </head>
 
-
 <body>
 
-<header class="topbar">
+<div class="container">
 
-    <div class="logo-small">
-        مِرقاة
+    <div class="header">
+        <button class="back-btn" onclick="goBack()">العودة للوحة التحكم</button>
+
+        <h1>إدارة المواد</h1>
+        <p>إضافة وعرض وحذف المواد الدراسية</p>
     </div>
 
-    <a href="dashboard.html">
-        الرئيسية
-    </a>
-
-</header>
-
-
-<main class="admin-container">
-
-
-    <!-- إضافة مادة -->
-
-    <div class="admin-card dashboard-card">
-
-        <h1>
-            📚 إدارة المواد
-        </h1>
-
-        <p>
-            من هنا تقدري تضيفي المواد الدراسية للنظام.
-        </p>
-
+    <div class="card">
+        <h2>إضافة مادة جديدة</h2>
 
         <form id="subjectForm">
 
             <div class="form-group">
-
-                <label for="subjectName">
-                    اسم المادة
-                </label>
-
+                <label for="subjectName">اسم المادة</label>
                 <input
                     type="text"
                     id="subjectName"
-                    placeholder="مثلاً: برمجة 2"
+                    placeholder="مثال: البرمجة"
                     required
                 >
-
             </div>
 
-
             <div class="form-group">
-
-                <label for="subjectCode">
-                    رمز المادة
-                </label>
-
+                <label for="subjectCode">رمز المادة</label>
                 <input
                     type="text"
                     id="subjectCode"
-                    placeholder="مثلاً: CS202"
+                    placeholder="مثال: CS101"
                     required
                 >
-
             </div>
 
-
-            <button
-                type="submit"
-                class="add-button"
-            >
-                ➕ إضافة المادة
+            <button type="submit" class="add-btn">
+                إضافة المادة
             </button>
 
         </form>
 
-
-        <div
-            id="message"
-            class="message"
-        ></div>
-
+        <div id="message" class="message"></div>
     </div>
 
+    <div class="card">
+        <h2>المواد الموجودة</h2>
 
+        <div class="table-container">
 
-    <!-- قائمة المواد -->
-
-    <div class="admin-card dashboard-card">
-
-        <h2>
-            📋 المواد الموجودة
-        </h2>
-
-
-        <div
-            id="subjectsList"
-            class="subjects-list"
-        >
-
-            <p class="empty">
+            <div id="loading" class="loading">
                 جاري تحميل المواد...
-            </p>
+            </div>
+
+            <table id="subjectsTable" style="display: none;">
+
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>اسم المادة</th>
+                        <th>رمز المادة</th>
+                        <th>عدد الطلاب</th>
+                        <th>الإجراء</th>
+                    </tr>
+                </thead>
+
+                <tbody id="subjectsBody"></tbody>
+
+            </table>
+
+            <div id="emptyMessage" class="empty" style="display: none;">
+                لا توجد مواد حاليًا.
+            </div>
 
         </div>
-
     </div>
 
-
-</main>
-
-
+</div>
 
 <script>
 
-const subjectForm =
-    document.getElementById("subjectForm");
-
-const subjectName =
-    document.getElementById("subjectName");
-
-const subjectCode =
-    document.getElementById("subjectCode");
-
-const subjectsList =
-    document.getElementById("subjectsList");
-
-const message =
-    document.getElementById("message");
+const token = localStorage.getItem("token");
 
 
-// ================================
-// تحميل المواد
-// ================================
+// ========================================
+// التأكد من تسجيل الدخول وصلاحية الأدمن
+// ========================================
 
-async function loadSubjects() {
+async function checkAdminAccess() {
+
+    if (!token) {
+        window.location.href = "index.html";
+        return false;
+    }
 
     try {
 
-        const response =
-            await fetch("/subjects");
+        const response = await fetch("/students/me", {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        });
 
+        const data = await response.json();
 
-        if (!response.ok) {
-            throw new Error("فشل تحميل المواد");
+        if (!response.ok || !data.student) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("student");
+
+            window.location.href = "index.html";
+            return false;
         }
 
+        if (data.student.role !== "admin") {
 
-        const data =
-            await response.json();
+            alert("ليس لديك صلاحية الدخول إلى هذه الصفحة.");
+
+            window.location.href = "dashboard.html";
+            return false;
+        }
+
+        return true;
+
+    } catch (error) {
+
+        console.error("Admin check error:", error);
+
+        alert("حدث خطأ في التحقق من صلاحية الحساب.");
+
+        window.location.href = "dashboard.html";
+
+        return false;
+    }
+}
 
 
-        subjectsList.innerHTML = "";
+// ========================================
+// تحميل جميع المواد للأدمن
+// ========================================
 
+async function loadSubjects() {
+
+    const loading = document.getElementById("loading");
+    const table = document.getElementById("subjectsTable");
+    const emptyMessage = document.getElementById("emptyMessage");
+    const subjectsBody = document.getElementById("subjectsBody");
+
+    loading.style.display = "block";
+    table.style.display = "none";
+    emptyMessage.style.display = "none";
+
+    try {
+
+        const response = await fetch("/subjects/admin/all", {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+
+            if (response.status === 401) {
+                localStorage.removeItem("token");
+                localStorage.removeItem("student");
+                window.location.href = "index.html";
+                return;
+            }
+
+            if (response.status === 403) {
+                alert("ليس لديك صلاحية الإدارة.");
+                window.location.href = "dashboard.html";
+                return;
+            }
+
+            throw new Error(data.error || "فشل تحميل المواد");
+        }
+
+        subjectsBody.innerHTML = "";
 
         if (!Array.isArray(data) || data.length === 0) {
 
-            subjectsList.innerHTML = `
-                <p class="empty">
-                    مافيش مواد مضافة حالياً.
-                </p>
-            `;
+            loading.style.display = "none";
+            emptyMessage.style.display = "block";
 
             return;
         }
 
+        data.forEach((subject, index) => {
 
-        data.forEach(subject => {
+            const row = document.createElement("tr");
 
-            const item =
-                document.createElement("div");
+            const studentsCount =
+                subject.students_count !== undefined
+                    ? subject.students_count
+                    : 0;
 
+            row.innerHTML = `
+                <td>${index + 1}</td>
 
-            item.className =
-                "subject-item";
+                <td>${escapeHtml(subject.name || "")}</td>
 
+                <td>${escapeHtml(subject.code || "")}</td>
 
-            item.innerHTML = `
+                <td class="count">
+                    ${studentsCount}
+                </td>
 
-                <div class="subject-info">
-
-                    <h3>
-                        📚 ${subject.name}
-                    </h3>
-
-                    <p>
-                        رمز المادة:
-                        ${subject.code || "بدون رمز"}
-                    </p>
-
-                </div>
-
-
-                <button
-                    type="button"
-                    class="delete-button"
-                    onclick="deleteSubject(${subject.id})"
-                >
-                    🗑️ حذف المادة
-                </button>
-
+                <td>
+                    <button
+                        class="delete-btn"
+                        onclick="deleteSubject(${subject.id})"
+                    >
+                        حذف
+                    </button>
+                </td>
             `;
 
-
-            subjectsList.appendChild(item);
-
+            subjectsBody.appendChild(row);
         });
 
+        loading.style.display = "none";
+        table.style.display = "table";
 
     } catch (error) {
 
-        console.error(error);
+        console.error("Load subjects error:", error);
 
+        loading.style.display = "none";
 
-        subjectsList.innerHTML = `
-            <p class="empty">
-                ❌ حدث خطأ في تحميل المواد.
-            </p>
-        `;
-
+        showMessage(
+            error.message || "حدث خطأ أثناء تحميل المواد",
+            "error"
+        );
     }
-
 }
 
 
-
-// ================================
+// ========================================
 // إضافة مادة
-// ================================
+// ========================================
 
-subjectForm.addEventListener(
-    "submit",
-    async function(event) {
+document
+    .getElementById("subjectForm")
+    .addEventListener("submit", async function(event) {
 
         event.preventDefault();
 
+        const name =
+            document.getElementById("subjectName").value.trim();
 
-        message.textContent =
-            "جاري إضافة المادة...";
+        const code =
+            document.getElementById("subjectCode").value.trim();
 
+        if (!name || !code) {
+
+            showMessage(
+                "اسم المادة ورمز المادة مطلوبان",
+                "error"
+            );
+
+            return;
+        }
 
         try {
 
-            const response =
-                await fetch("/subjects", {
+            const response = await fetch("/subjects/admin", {
+                method: "POST",
 
-                    method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
 
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
+                body: JSON.stringify({
+                    name: name,
+                    code: code
+                })
+            });
 
-                    body: JSON.stringify({
-
-                        name:
-                            subjectName.value.trim(),
-
-                        code:
-                            subjectCode.value.trim()
-
-                    })
-
-                });
-
-
-            const data =
-                await response.json();
-
+            const data = await response.json();
 
             if (!response.ok) {
 
-                throw new Error(
-                    data.error ||
-                    "حدث خطأ أثناء إضافة المادة"
-                );
+                if (response.status === 401) {
+                    localStorage.removeItem("token");
+                    localStorage.removeItem("student");
 
+                    window.location.href = "index.html";
+                    return;
+                }
+
+                if (response.status === 403) {
+
+                    showMessage(
+                        "ليس لديك صلاحية الإدارة.",
+                        "error"
+                    );
+
+                    return;
+                }
+
+                throw new Error(
+                    data.error || "فشل إضافة المادة"
+                );
             }
 
+            showMessage(
+                data.message || "تمت إضافة المادة بنجاح",
+                "success"
+            );
 
-            message.textContent =
-                "✅ تمت إضافة المادة بنجاح";
+            document.getElementById("subjectForm").reset();
 
-
-            subjectForm.reset();
-
-
-            loadSubjects();
-
+            await loadSubjects();
 
         } catch (error) {
 
-            console.error(error);
+            console.error("Add subject error:", error);
 
-
-            message.textContent =
-                "❌ " + error.message;
-
+            showMessage(
+                error.message || "حدث خطأ أثناء إضافة المادة",
+                "error"
+            );
         }
-
-    }
-);
+    });
 
 
-
-// ================================
+// ========================================
 // حذف مادة
-// ================================
+// ========================================
 
 async function deleteSubject(id) {
 
-    const confirmed =
-        confirm(
-            "⚠️ هل متأكدة إنك تبي تحذفي هذه المادة؟"
-        );
-
+    const confirmed = confirm(
+        "هل أنت متأكد من حذف هذه المادة؟"
+    );
 
     if (!confirmed) {
         return;
     }
 
-
     try {
 
-        const response =
-            await fetch(
-                `/subjects/${id}`,
-                {
-                    method: "DELETE"
+        const response = await fetch(
+            `/subjects/admin/${id}`,
+            {
+                method: "DELETE",
+
+                headers: {
+                    "Authorization": "Bearer " + token
                 }
-            );
+            }
+        );
 
-
-        const data =
-            await response.json();
-
+        const data = await response.json();
 
         if (!response.ok) {
 
-            throw new Error(
-                data.error ||
-                "حدث خطأ أثناء حذف المادة"
-            );
+            if (response.status === 401) {
 
+                localStorage.removeItem("token");
+                localStorage.removeItem("student");
+
+                window.location.href = "index.html";
+
+                return;
+            }
+
+            if (response.status === 403) {
+
+                showMessage(
+                    "ليس لديك صلاحية الإدارة.",
+                    "error"
+                );
+
+                return;
+            }
+
+            throw new Error(
+                data.error || "فشل حذف المادة"
+            );
         }
 
+        showMessage(
+            data.message || "تم حذف المادة بنجاح",
+            "success"
+        );
 
-        message.textContent =
-            "✅ تم حذف المادة بنجاح";
-
-
-        loadSubjects();
-
+        await loadSubjects();
 
     } catch (error) {
 
-        console.error(error);
+        console.error("Delete subject error:", error);
 
-
-        message.textContent =
-            "❌ " + error.message;
-
+        showMessage(
+            error.message ||
+            "حدث خطأ أثناء حذف المادة",
+            "error"
+        );
     }
-
 }
 
 
+// ========================================
+// الرسائل
+// ========================================
 
-// ================================
+function showMessage(message, type) {
+
+    const element = document.getElementById("message");
+
+    element.textContent = message;
+
+    element.className =
+        "message " + type;
+
+    setTimeout(() => {
+
+        element.textContent = "";
+        element.className = "message";
+
+    }, 5000);
+}
+
+
+// ========================================
+// حماية من HTML داخل أسماء المواد
+// ========================================
+
+function escapeHtml(value) {
+
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+// ========================================
+// الرجوع للوحة التحكم
+// ========================================
+
+function goBack() {
+
+    window.location.href = "dashboard.html";
+}
+
+
+// ========================================
 // تشغيل الصفحة
-// ================================
+// ========================================
 
-loadSubjects();
+(async function() {
+
+    const allowed = await checkAdminAccess();
+
+    if (allowed) {
+        await loadSubjects();
+    }
+
+})();
 
 </script>
 
-
 </body>
-
 </html>
