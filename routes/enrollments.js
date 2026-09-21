@@ -1,18 +1,25 @@
+
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
 
 // =========================
-// عرض كل التسجيلات
+// عرض مواد طالب معيّن
 // =========================
 router.get("/", async (req, res) => {
     try {
+        const { student_id } = req.query;
+
+        if (!student_id) {
+            return res.status(400).json({
+                error: "student_id مطلوب"
+            });
+        }
+
         const result = await db.query(
             `SELECT
                 enrollments.id,
                 enrollments.student_id,
-                students.name AS student_name,
-                students.email AS student_email,
                 enrollments.subject_id,
                 subjects.name AS subject_name,
                 subjects.code AS subject_code,
@@ -20,17 +27,18 @@ router.get("/", async (req, res) => {
                 enrollments.status,
                 enrollments.created_at
              FROM public.enrollments
-             JOIN public.students
-                ON enrollments.student_id = students.id
              JOIN public.subjects
                 ON enrollments.subject_id = subjects.id
-             ORDER BY students.name, subjects.name`
+             WHERE enrollments.student_id = $1
+             ORDER BY subjects.name`,
+            [student_id]
         );
 
         res.json(result.rows);
 
     } catch (error) {
         console.error("GET /enrollments error:", error);
+
         res.status(500).json({
             error: "Database error"
         });
@@ -39,17 +47,23 @@ router.get("/", async (req, res) => {
 
 
 // =========================
-// عرض تسجيل واحد
+// عرض تسجيل واحد لطالب معيّن
 // =========================
 router.get("/:id", async (req, res) => {
     try {
         const { id } = req.params;
+        const { student_id } = req.query;
+
+        if (!student_id) {
+            return res.status(400).json({
+                error: "student_id مطلوب"
+            });
+        }
 
         const result = await db.query(
             `SELECT
                 enrollments.id,
                 enrollments.student_id,
-                students.name AS student_name,
                 enrollments.subject_id,
                 subjects.name AS subject_name,
                 subjects.code AS subject_code,
@@ -57,17 +71,16 @@ router.get("/:id", async (req, res) => {
                 enrollments.status,
                 enrollments.created_at
              FROM public.enrollments
-             JOIN public.students
-                ON enrollments.student_id = students.id
              JOIN public.subjects
                 ON enrollments.subject_id = subjects.id
-             WHERE enrollments.id = $1`,
-            [id]
+             WHERE enrollments.id = $1
+             AND enrollments.student_id = $2`,
+            [id, student_id]
         );
 
         if (result.rows.length === 0) {
             return res.status(404).json({
-                error: "Enrollment not found"
+                error: "التسجيل غير موجود أو لا يخص هذا الطالب"
             });
         }
 
@@ -75,6 +88,7 @@ router.get("/:id", async (req, res) => {
 
     } catch (error) {
         console.error("GET /enrollments/:id error:", error);
+
         res.status(500).json({
             error: "Database error"
         });
@@ -83,14 +97,13 @@ router.get("/:id", async (req, res) => {
 
 
 // =========================
-// إضافة تسجيل طالب في مادة
+// تسجيل الطالب في مادة
 // =========================
 router.post("/", async (req, res) => {
     try {
         const {
             student_id,
             subject_id,
-            lecture_id,
             status
         } = req.body;
 
@@ -128,7 +141,7 @@ router.post("/", async (req, res) => {
             });
         }
 
-        // منع تسجيل نفس الطالب في نفس المادة مرتين
+        // منع التكرار
         const existing = await db.query(
             `SELECT id
              FROM public.enrollments
@@ -139,68 +152,31 @@ router.post("/", async (req, res) => {
 
         if (existing.rows.length > 0) {
             return res.status(400).json({
-                error: "الطالب مسجل في هذه المادة بالفعل"
+                error: "أنت مسجل في هذه المادة بالفعل"
             });
         }
 
-        let result;
-
-        // إذا تم اختيار محاضرة
-        if (lecture_id) {
-            const lecture = await db.query(
-                `SELECT id
-                 FROM public.lectures
-                 WHERE id = $1`,
-                [lecture_id]
-            );
-
-            if (lecture.rows.length === 0) {
-                return res.status(404).json({
-                    error: "المحاضرة غير موجودة"
-                });
-            }
-
-            result = await db.query(
-                `INSERT INTO public.enrollments
-                (
-                    student_id,
-                    lecture_id,
-                    subject_id,
-                    status
-                )
-                VALUES ($1, $2, $3, $4)
-                RETURNING *`,
-                [
-                    student_id,
-                    lecture_id,
-                    subject_id,
-                    status || "active"
-                ]
-            );
-
-        } else {
-            // التسجيل في المادة بدون تحديد محاضرة
-            result = await db.query(
-                `INSERT INTO public.enrollments
-                (
-                    student_id,
-                    subject_id,
-                    status
-                )
-                VALUES ($1, $2, $3)
-                RETURNING *`,
-                [
-                    student_id,
-                    subject_id,
-                    status || "active"
-                ]
-            );
-        }
+        const result = await db.query(
+            `INSERT INTO public.enrollments
+            (
+                student_id,
+                subject_id,
+                status
+            )
+            VALUES ($1, $2, $3)
+            RETURNING *`,
+            [
+                student_id,
+                subject_id,
+                status || "active"
+            ]
+        );
 
         res.status(201).json(result.rows[0]);
 
     } catch (error) {
         console.error("POST /enrollments error:", error);
+
         res.status(500).json({
             error: "Database error"
         });
@@ -209,7 +185,7 @@ router.post("/", async (req, res) => {
 
 
 // =========================
-// تعديل تسجيل
+// تعديل تسجيل الطالب
 // =========================
 router.put("/:id", async (req, res) => {
     try {
@@ -218,7 +194,6 @@ router.put("/:id", async (req, res) => {
         const {
             student_id,
             subject_id,
-            lecture_id,
             status
         } = req.body;
 
@@ -228,19 +203,22 @@ router.put("/:id", async (req, res) => {
             });
         }
 
-        const student = await db.query(
+        // التأكد أن التسجيل يخص هذا الطالب
+        const existing = await db.query(
             `SELECT id
-             FROM public.students
-             WHERE id = $1`,
-            [student_id]
+             FROM public.enrollments
+             WHERE id = $1
+             AND student_id = $2`,
+            [id, student_id]
         );
 
-        if (student.rows.length === 0) {
+        if (existing.rows.length === 0) {
             return res.status(404).json({
-                error: "الطالب غير موجود"
+                error: "التسجيل غير موجود أو لا يخص هذا الطالب"
             });
         }
 
+        // التأكد من وجود المادة
         const subject = await db.query(
             `SELECT id
              FROM public.subjects
@@ -257,24 +235,22 @@ router.put("/:id", async (req, res) => {
         const result = await db.query(
             `UPDATE public.enrollments
              SET
-                student_id = $1,
-                lecture_id = $2,
-                subject_id = $3,
-                status = $4
-             WHERE id = $5
+                subject_id = $1,
+                status = $2
+             WHERE id = $3
+             AND student_id = $4
              RETURNING *`,
             [
-                student_id,
-                lecture_id || null,
                 subject_id,
                 status || "active",
-                id
+                id,
+                student_id
             ]
         );
 
         if (result.rows.length === 0) {
             return res.status(404).json({
-                error: "Enrollment not found"
+                error: "التسجيل غير موجود"
             });
         }
 
@@ -282,6 +258,7 @@ router.put("/:id", async (req, res) => {
 
     } catch (error) {
         console.error("PUT /enrollments/:id error:", error);
+
         res.status(500).json({
             error: "Database error"
         });
@@ -290,32 +267,41 @@ router.put("/:id", async (req, res) => {
 
 
 // =========================
-// حذف تسجيل
+// حذف تسجيل الطالب من مادة
 // =========================
 router.delete("/:id", async (req, res) => {
     try {
         const { id } = req.params;
+        const { student_id } = req.query;
+
+        if (!student_id) {
+            return res.status(400).json({
+                error: "student_id مطلوب"
+            });
+        }
 
         const result = await db.query(
             `DELETE FROM public.enrollments
              WHERE id = $1
+             AND student_id = $2
              RETURNING *`,
-            [id]
+            [id, student_id]
         );
 
         if (result.rows.length === 0) {
             return res.status(404).json({
-                error: "Enrollment not found"
+                error: "التسجيل غير موجود أو لا يخص هذا الطالب"
             });
         }
 
         res.json({
-            message: "Enrollment deleted successfully",
+            message: "تم حذف المادة من موادك",
             enrollment: result.rows[0]
         });
 
     } catch (error) {
         console.error("DELETE /enrollments/:id error:", error);
+
         res.status(500).json({
             error: "Database error"
         });
