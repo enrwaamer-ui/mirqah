@@ -5,15 +5,13 @@ async function checkUpcomingLectures() {
         const result = await db.query(`
             SELECT
                 lectures.id AS lecture_id,
+                lectures.student_id,
                 lectures.title,
                 lectures.lecture_date,
-                lectures.start_time,
-                enrollments.student_id
+                lectures.start_time
             FROM public.lectures
-            JOIN public.enrollments
-                ON lectures.subject_id = enrollments.subject_id
-            WHERE enrollments.status = 'active'`
-        );
+            WHERE lectures.student_id IS NOT NULL
+        `);
 
         for (const lecture of result.rows) {
 
@@ -41,6 +39,8 @@ async function checkUpcomingLectures() {
             console.log(
                 "Lecture " +
                 lecture.lecture_id +
+                " for student " +
+                lecture.student_id +
                 ": " +
                 difference.toFixed(2) +
                 " minutes remaining"
@@ -49,7 +49,10 @@ async function checkUpcomingLectures() {
             if (difference > 0 && difference <= 5) {
 
                 const check = await db.query(
-                    "SELECT id FROM public.notifications WHERE student_id = $1 AND lecture_id = $2",
+                    `SELECT id
+                     FROM public.notifications
+                     WHERE student_id = $1
+                     AND lecture_id = $2`,
                     [
                         lecture.student_id,
                         lecture.lecture_id
@@ -59,17 +62,37 @@ async function checkUpcomingLectures() {
                 if (check.rows.length === 0) {
 
                     await db.query(
-                        "INSERT INTO public.notifications (student_id, lecture_id, message, notification_time, is_read) VALUES ($1, $2, $3, NOW(), false)",
+                        `INSERT INTO public.notifications
+                        (
+                            student_id,
+                            lecture_id,
+                            title,
+                            message,
+                            notification_time,
+                            is_read
+                        )
+                        VALUES
+                        (
+                            $1,
+                            $2,
+                            $3,
+                            $4,
+                            NOW(),
+                            false
+                        )`,
                         [
                             lecture.student_id,
                             lecture.lecture_id,
+                            "تذكير بالمحاضرة",
                             "تذكير: عندك محاضرة بعد 5 دقائق"
                         ]
                     );
 
                     console.log(
                         "Notification created for student " +
-                        lecture.student_id
+                        lecture.student_id +
+                        ", lecture " +
+                        lecture.lecture_id
                     );
 
                 } else {
