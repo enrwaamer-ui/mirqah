@@ -1,4 +1,3 @@
-
 const token = localStorage.getItem("token");
 
 if (!token) {
@@ -40,21 +39,41 @@ if (!token) {
             document.getElementById("studentName").textContent =
                 student.name || "الطالب";
 
+
+            // =========================
+            // إظهار إدارة النظام للـAdmin فقط
+            // =========================
+
+            const adminSection =
+                document.getElementById("adminSection");
+
+            if (adminSection) {
+
+                if (student.role === "admin") {
+
+                    adminSection.style.display = "block";
+
+                } else {
+
+                    adminSection.style.display = "none";
+
+                }
+            }
+
+
+            // تحديث البيانات المحلية
+            localStorage.setItem(
+                "student",
+                JSON.stringify(student)
+            );
+
+
         } catch (error) {
 
             console.error("Student error:", error);
 
-            // لو التوكن منتهي أو غير صالح
-            if (
-                error.message.includes("جلسة") ||
-                error.message.includes("تسجيل الدخول")
-            ) {
-                logout();
-                return;
-            }
+            logout();
 
-            document.getElementById("studentName").textContent =
-                "الطالب";
         }
     }
 
@@ -129,16 +148,21 @@ if (!token) {
 
         try {
 
-            const data = await apiFetch("/notifications/unread-count");
+            const data =
+                await apiFetch("/notifications/unread-count");
 
             document.getElementById("notificationsCount").textContent =
                 data.count ?? 0;
 
         } catch (error) {
 
-            console.error("Notifications count error:", error);
+            console.error(
+                "Notifications count error:",
+                error
+            );
 
-            document.getElementById("notificationsCount").textContent = "0";
+            document.getElementById("notificationsCount").textContent =
+                "0";
         }
     }
 
@@ -176,7 +200,8 @@ if (!token) {
             return "غير محدد";
         }
 
-        const match = String(timeValue).match(/^(\d{2}):(\d{2})/);
+        const match =
+            String(timeValue).match(/^(\d{2}):(\d{2})/);
 
         if (match) {
             return `${match[1]}:${match[2]}`;
@@ -196,7 +221,8 @@ if (!token) {
 
         try {
 
-            const lecture = await apiFetch("/lectures/next");
+            const lecture =
+                await apiFetch("/lectures/next");
 
 
             if (!lecture) {
@@ -256,7 +282,10 @@ if (!token) {
 
         } catch (error) {
 
-            console.error("Next lecture error:", error);
+            console.error(
+                "Next lecture error:",
+                error
+            );
 
             nextLecture.innerHTML =
                 "<p>حدث خطأ في تحميل المحاضرة القادمة.</p>";
@@ -284,9 +313,15 @@ if (!token) {
     // تشغيل الصفحة
     // =========================
     loadStudent();
+
     loadSubjectsCount();
+
     loadLecturesCount();
+
     loadExamsCount();
+
     loadNotificationsCount();
+
     loadNextLecture();
+
 }
