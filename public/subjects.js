@@ -1,15 +1,31 @@
-const studentData = localStorage.getItem("student");
+const token = localStorage.getItem("token");
 
-if (!studentData) {
+if (!token) {
     window.location.href = "index.html";
 } else {
-    const student = JSON.parse(studentData);
 
     const subjectsList =
         document.getElementById("subjectsList");
 
-    fetch(`/subjects?student_id=${student.id}`)
-        .then(response => response.json())
+    fetch("/subjects", {
+        method: "GET",
+
+        headers: {
+            "Authorization": `Bearer ${token}`
+        }
+    })
+        .then(async response => {
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.error || "حدث خطأ في تحميل المواد"
+                );
+            }
+
+            return data;
+        })
         .then(data => {
 
             if (data.length === 0) {
@@ -48,10 +64,10 @@ if (!studentData) {
         })
         .catch(error => {
 
-            console.error(error);
+            console.error("Subjects error:", error);
 
             subjectsList.innerHTML =
-                "<p>حدث خطأ في تحميل المواد.</p>";
+                `<p>${error.message}</p>`;
 
         });
 }
