@@ -1,146 +1,126 @@
+const token = localStorage.getItem("token");
+
+if (!token) {
+    window.location.href = "index.html";
+}
+
 const examsList = document.getElementById("examsList");
 
-const studentData = localStorage.getItem("student");
-
-if (!studentData) {
-
-    window.location.href = "index.html";
-
-} else {
-
-    const student = JSON.parse(studentData);
-
-
-    // =========================
-    // تنسيق التاريخ
-    // =========================
-    function formatDate(dateValue) {
-
-        if (!dateValue) {
-            return "غير محدد";
-        }
-
-        const date = new Date(dateValue);
-
-        if (isNaN(date.getTime())) {
-            return "غير محدد";
-        }
-
-        return date.toLocaleDateString("ar-LY", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric"
+async function loadExams() {
+    try {
+        const response = await fetch("/exams", {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
         });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "حدث خطأ في تحميل الامتحانات");
+        }
+
+        if (!data || data.length === 0) {
+            examsList.innerHTML = `
+                <p style="text-align:center;">
+                    مافيش امتحانات مسجلة حاليًا.
+                </p>
+            `;
+            return;
+        }
+
+        examsList.innerHTML = "";
+
+        data.forEach(exam => {
+            const card = document.createElement("div");
+
+            card.className = "dashboard-card";
+            card.style.marginBottom = "15px";
+            card.style.textAlign = "right";
+
+            card.innerHTML = `
+                <h2>📝 ${exam.subject_display_name || exam.subject_name || "بدون مادة"}</h2>
+
+                <p>
+                    📅 التاريخ:
+                    ${formatDate(exam.exam_date)}
+                </p>
+
+                <p>
+                    ⏰ الوقت:
+                    ${formatTime(exam.start_time)}
+                </p>
+
+                <p>
+                    🏫 القاعة:
+                    ${exam.hall || "غير محددة"}
+                </p>
+
+                <p>
+                    🔢 كود المادة:
+                    ${exam.subject_code || "غير محدد"}
+                </p>
+            `;
+
+            examsList.appendChild(card);
+        });
+
+    } catch (error) {
+        console.error("Exams error:", error);
+
+        examsList.innerHTML = `
+            <p style="text-align:center;">
+                ${error.message}
+            </p>
+        `;
+    }
+}
+
+function formatDate(dateValue) {
+    if (!dateValue) {
+        return "غير محدد";
     }
 
+    const date = new Date(dateValue);
 
-    // =========================
-    // تنسيق الوقت
-    // =========================
-    function formatTime(timeValue) {
+    if (isNaN(date.getTime())) {
+        return dateValue;
+    }
 
-        if (!timeValue) {
-            return "غير محدد";
-        }
+    return date.toLocaleDateString("ar-LY", {
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+    });
+}
 
-        const match =
-            String(timeValue).match(/^(\d{2}):(\d{2})/);
+function formatTime(timeValue) {
+    if (!timeValue) {
+        return "غير محدد";
+    }
 
-        if (match) {
-            return `${match[1]}:${match[2]}`;
-        }
+    const parts = String(timeValue).split(":");
 
+    if (parts.length < 2) {
         return timeValue;
     }
 
+    const hour = Number(parts[0]);
+    const minute = parts[1];
 
-    // =========================
-    // تحميل الامتحانات
-    // =========================
-    fetch(`/exams?student_id=${student.id}`)
+    if (isNaN(hour)) {
+        return timeValue;
+    }
 
-        .then(response => response.json())
+    const period = hour >= 12 ? "م" : "ص";
+    const displayHour = hour % 12 || 12;
 
-        .then(exams => {
-
-            examsList.innerHTML = "";
-
-            if (!Array.isArray(exams) || exams.length === 0) {
-
-                examsList.innerHTML =
-                    "<p>مافيش امتحانات حالياً.</p>";
-
-                return;
-            }
-
-
-            exams.forEach(exam => {
-
-                const card =
-                    document.createElement("div");
-
-                card.className = "dashboard-card";
-
-                card.style.marginBottom = "20px";
-
-                const examDate =
-                    formatDate(exam.exam_date);
-
-                const examTime =
-                    formatTime(exam.start_time);
-
-                const subjectName =
-                    exam.subject_display_name ||
-                    exam.subject_name ||
-                    "غير محددة";
-
-                const hall =
-                    exam.hall ||
-                    "غير محددة";
-
-
-                card.innerHTML = `
-
-                    <h3>
-                        📝 امتحان ${subjectName}
-                    </h3>
-
-                    <p>
-                        📚 المادة:
-                        ${subjectName}
-                    </p>
-
-                    <p>
-                        📅 التاريخ:
-                        ${examDate}
-                    </p>
-
-                    <p>
-                        🕐 الوقت:
-                        ${examTime}
-                    </p>
-
-                    <p>
-                        📍 القاعة:
-                        ${hall}
-                    </p>
-
-                `;
-
-
-                examsList.appendChild(card);
-
-            });
-
-        })
-
-        .catch(error => {
-
-            console.error(error);
-
-            examsList.innerHTML =
-                "<p>حدث خطأ في تحميل الامتحانات.</p>";
-
-        });
+    return `${displayHour}:${minute} ${period}`;
 }
+
+function goBack() {
+    window.location.href = "dashboard.html";
+}
+
+loadExams();
