@@ -1,168 +1,133 @@
-const studentData =
-    localStorage.getItem("student");
+const token = localStorage.getItem("token");
 
-
-if (!studentData) {
-
+if (!token) {
     window.location.href = "index.html";
+}
 
-} else {
+const lecturesList = document.getElementById("lecturesList");
 
-    const student =
-        JSON.parse(studentData);
-
-
-    const lecturesList =
-        document.getElementById("lecturesList");
-
-
-    // =========================
-    // تنسيق التاريخ
-    // =========================
-    function formatDate(dateValue) {
-
-        if (!dateValue) {
-            return "غير محدد";
-        }
-
-        const date = new Date(dateValue);
-
-        if (isNaN(date.getTime())) {
-            return "غير محدد";
-        }
-
-        return date.toLocaleDateString("ar-LY", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric"
+async function loadLectures() {
+    try {
+        const response = await fetch("/lectures", {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
         });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "حدث خطأ في تحميل المحاضرات");
+        }
+
+        if (!data || data.length === 0) {
+            lecturesList.innerHTML = `
+                <p style="text-align:center;">
+                    مافيش محاضرات مسجلة حاليًا.
+                </p>
+            `;
+            return;
+        }
+
+        lecturesList.innerHTML = "";
+
+        data.forEach(lecture => {
+            const card = document.createElement("div");
+
+            card.className = "dashboard-card";
+            card.style.marginBottom = "15px";
+            card.style.textAlign = "right";
+
+            card.innerHTML = `
+                <h2>📚 ${lecture.subject_name || "بدون مادة"}</h2>
+
+                <p>
+                    📝 المحاضرة:
+                    ${lecture.title || "غير محدد"}
+                </p>
+
+                <p>
+                    📅 التاريخ:
+                    ${formatDate(lecture.lecture_date)}
+                </p>
+
+                <p>
+                    ⏰ الوقت:
+                    ${formatTime(lecture.start_time)}
+                    -
+                    ${formatTime(lecture.end_time)}
+                </p>
+
+                <p>
+                    🏫 القاعة:
+                    ${lecture.hall || "غير محددة"}
+                </p>
+
+                <p>
+                    🔢 كود المادة:
+                    ${lecture.subject_code || "غير محدد"}
+                </p>
+            `;
+
+            lecturesList.appendChild(card);
+        });
+
+    } catch (error) {
+        console.error("Lectures error:", error);
+
+        lecturesList.innerHTML = `
+            <p style="text-align:center;">
+                ${error.message}
+            </p>
+        `;
+    }
+}
+
+function formatDate(dateValue) {
+    if (!dateValue) {
+        return "غير محدد";
     }
 
+    const date = new Date(dateValue);
 
-    // =========================
-    // تنسيق الوقت
-    // =========================
-    function formatTime(timeValue) {
+    if (isNaN(date.getTime())) {
+        return dateValue;
+    }
 
-        if (!timeValue) {
-            return "غير محدد";
-        }
+    return date.toLocaleDateString("ar-LY", {
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+    });
+}
 
-        const match =
-            String(timeValue).match(/^(\d{2}):(\d{2})/);
+function formatTime(timeValue) {
+    if (!timeValue) {
+        return "غير محدد";
+    }
 
-        if (match) {
-            return `${match[1]}:${match[2]}`;
-        }
+    const parts = String(timeValue).split(":");
 
+    if (parts.length < 2) {
         return timeValue;
     }
 
+    const hour = Number(parts[0]);
+    const minute = parts[1];
 
-    // =========================
-    // تحميل المحاضرات
-    // =========================
-    fetch(`/lectures?student_id=${student.id}`)
+    if (isNaN(hour)) {
+        return timeValue;
+    }
 
-        .then(response => response.json())
+    const period = hour >= 12 ? "م" : "ص";
+    const displayHour = hour % 12 || 12;
 
-        .then(lectures => {
-
-            lecturesList.innerHTML = "";
-
-
-            if (!Array.isArray(lectures) || lectures.length === 0) {
-
-                lecturesList.innerHTML =
-                    "<p>مافيش محاضرات حالياً.</p>";
-
-                return;
-            }
-
-
-            lectures.forEach(lecture => {
-
-                const card =
-                    document.createElement("div");
-
-
-                card.className =
-                    "dashboard-card";
-
-
-                card.style.marginBottom =
-                    "20px";
-
-
-                const lectureDate =
-                    formatDate(lecture.lecture_date);
-
-
-                const startTime =
-                    formatTime(lecture.start_time);
-
-
-                const endTime =
-                    formatTime(lecture.end_time);
-
-
-                const hall =
-                    lecture.hall ||
-                    lecture.room ||
-                    "غير محددة";
-
-
-                const subjectName =
-                    lecture.subject_name ||
-                    lecture.subject_display_name ||
-                    "غير محددة";
-
-
-                card.innerHTML = `
-
-                    <h3>
-                        🎓 ${lecture.title || "محاضرة"}
-                    </h3>
-
-                    <p>
-                        📅 التاريخ:
-                        ${lectureDate}
-                    </p>
-
-                    <p>
-                        🕐 الوقت:
-                        ${startTime}
-                        -
-                        ${endTime}
-                    </p>
-
-                    <p>
-                        📍 القاعة:
-                        ${hall}
-                    </p>
-
-                    <p>
-                        📚 المادة:
-                        ${subjectName}
-                    </p>
-
-                `;
-
-
-                lecturesList.appendChild(card);
-
-            });
-
-        })
-
-        .catch(error => {
-
-            console.error(error);
-
-            lecturesList.innerHTML =
-                "<p>حدث خطأ في تحميل المحاضرات.</p>";
-
-        });
-
+    return `${displayHour}:${minute} ${period}`;
 }
+
+function goBack() {
+    window.location.href = "dashboard.html";
+}
+
+loadLectures();
