@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 
@@ -203,52 +204,126 @@
 
     <script>
 
-        const studentData = localStorage.getItem("student");
+        const token = localStorage.getItem("token");
 
 
-        if (!studentData) {
+        // =========================
+        // التأكد من تسجيل الدخول
+        // =========================
+
+        if (!token) {
 
             window.location.href = "index.html";
 
         } else {
 
-            try {
+            // =========================
+            // جلب بيانات الطالب
+            // =========================
 
-                const student = JSON.parse(studentData);
+            fetch("/students/me", {
 
+                method: "GET",
+
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+
+            })
+
+            .then(async response => {
+
+                const data = await response.json();
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        data.error || "حدث خطأ في تحميل بيانات الطالب"
+                    );
+
+                }
+
+                return data;
+
+            })
+
+            .then(student => {
+
+                // الاسم
 
                 document.getElementById("profileName").textContent =
                     student.name || "غير متوفر";
 
 
+                // الرقم الجامعي
+
                 document.getElementById("profileStudentId").textContent =
                     student.student_id || "غير متوفر";
 
+
+                // البريد الإلكتروني
 
                 document.getElementById("profileEmail").textContent =
                     student.email || "غير متوفر";
 
 
+                // التخصص
+
                 document.getElementById("profileMajor").textContent =
                     student.major || "غير متوفر";
 
+
+                // الجامعة
 
                 document.getElementById("profileUniversity").textContent =
                     student.university || "غير متوفر";
 
 
+                // السنة الدراسية
+
                 document.getElementById("profileYear").textContent =
                     student.academic_year || "غير متوفر";
 
 
-            } catch (error) {
+                // تحديث بيانات الطالب المحلية
+                // بدون الاعتماد عليها في جلب البيانات
 
-                console.error(error);
+                localStorage.setItem(
+                    "student",
+                    JSON.stringify(student)
+                );
+
+            })
+
+            .catch(error => {
+
+                console.error("Profile error:", error);
+
 
                 document.getElementById("profileName").textContent =
                     "تعذر تحميل بيانات الطالب";
 
-            }
+
+                document.getElementById("profileStudentId").textContent =
+                    "غير متوفر";
+
+
+                document.getElementById("profileEmail").textContent =
+                    "غير متوفر";
+
+
+                document.getElementById("profileMajor").textContent =
+                    "غير متوفر";
+
+
+                document.getElementById("profileUniversity").textContent =
+                    "غير متوفر";
+
+
+                document.getElementById("profileYear").textContent =
+                    "غير متوفر";
+
+            });
 
         }
 
