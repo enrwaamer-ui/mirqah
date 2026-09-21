@@ -6,10 +6,12 @@ if (loginForm) {
 
         event.preventDefault();
 
-        const email = document.getElementById("email").value;
+        const email = document.getElementById("email").value.trim();
         const password = document.getElementById("password").value;
 
         const message = document.getElementById("loginMessage");
+
+        message.textContent = "جاري تسجيل الدخول...";
 
         try {
 
@@ -29,20 +31,29 @@ if (loginForm) {
             const data = await response.json();
 
             if (!response.ok) {
-                message.textContent = data.error;
+                message.textContent =
+                    data.error || "فشل تسجيل الدخول";
                 return;
             }
 
+            // حفظ بيانات الطالب
             localStorage.setItem(
                 "student",
                 JSON.stringify(data.student)
             );
 
+            // حفظ Token الخاص بالجلسة
+            localStorage.setItem(
+                "token",
+                data.token
+            );
+
+            // الانتقال للوحة الطالب
             window.location.href = "dashboard.html";
 
         } catch (error) {
 
-            console.error(error);
+            console.error("Login error:", error);
 
             message.textContent =
                 "حدث خطأ في الاتصال بالسيرفر";
