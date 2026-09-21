@@ -1,35 +1,34 @@
 const express = require("express");
 const router = express.Router();
+
 const db = require("../db");
+const authMiddleware = require("../middleware/auth");
 
 
-// ==========================================
+// =========================
 // جلب إشعارات الطالب
-// ==========================================
-
-router.get("/", async (req, res) => {
+// =========================
+router.get("/", authMiddleware, async (req, res) => {
     try {
-        const { student_id } = req.query;
-
-        if (!student_id) {
-            return res.status(400).json({
-                error: "student_id مطلوب"
-            });
-        }
+        const studentId = req.user.id;
 
         const result = await db.query(
             `SELECT
-                id,
-                student_id,
-                title,
-                message,
-                is_read,
-                created_at,
-                created_at AS notification_time
+                notifications.id,
+                notifications.title,
+                notifications.message,
+                notifications.is_read,
+                notifications.created_at,
+                notifications.lecture_id,
+                lectures.title AS lecture_title,
+                lectures.lecture_date,
+                lectures.start_time
              FROM public.notifications
-             WHERE student_id = $1
-             ORDER BY created_at DESC`,
-            [student_id]
+             LEFT JOIN public.lectures
+                ON notifications.lecture_id = lectures.id
+             WHERE notifications.student_id = $1
+             ORDER BY notifications.created_at DESC`,
+            [studentId]
         );
 
         res.json(result.rows);
@@ -44,26 +43,19 @@ router.get("/", async (req, res) => {
 });
 
 
-// ==========================================
+// =========================
 // عدد الإشعارات غير المقروءة
-// ==========================================
-
-router.get("/count", async (req, res) => {
+// =========================
+router.get("/unread-count", authMiddleware, async (req, res) => {
     try {
-        const { student_id } = req.query;
-
-        if (!student_id) {
-            return res.status(400).json({
-                error: "student_id مطلوب"
-            });
-        }
+        const studentId = req.user.id;
 
         const result = await db.query(
             `SELECT COUNT(*) AS count
              FROM public.notifications
              WHERE student_id = $1
              AND is_read = false`,
-            [student_id]
+            [studentId]
         );
 
         res.json({
@@ -71,7 +63,7 @@ router.get("/count", async (req, res) => {
         });
 
     } catch (error) {
-        console.error("GET /notifications/count error:", error);
+        console.error("GET /notifications/unread-count error:", error);
 
         res.status(500).json({
             error: "Database error"
@@ -80,227 +72,13 @@ router.get("/count", async (req, res) => {
 });
 
 
-// ==========================================
-// جلب إشعار واحد للطالب
-// ==========================================
-
-router.get("/:id", async (req, res) => {
+// =========================
+// تعليم إشعار كمقروء
+// =========================
+router.put("/:id/read", authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
-        const { student_id } = req.query;
-
-        if (!student_id) {
-            return res.status(400).json({
-                error: "student_id مطلوب"
-            });
-        }
-
-        const result = await db.query(
-            `SELECT
-                id,
-                student_id,
-                title,
-                message,
-                is_read,
-                created_at,
-                created_at AS notification_time
-             FROM public.notifications
-             WHERE id = $1
-             AND student_id = $2`,
-            [id, student_id]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({
-                error: "الإشعار غير موجود أو لا يخص هذا الطالب"
-            });
-        }
-
-        res.json(result.rows[0]);
-
-    } catch (error) {
-        console.error("GET /notifications/:id error:", error);
-
-        res.status(500).json({
-            error: "Database error"
-        });
-    }
-});
-
-
-// ==========================================
-// إضافة إشعار للطالب
-// ==========================================
-
-router.post("/", async (req, res) => {
-    try {
-        const {
-            student_id,
-            title,
-            message,
-            is_read
-        } = req.body;
-
-        if (!student_id || !title || !message) {
-            return res.status(400).json({
-                error: "student_id والعنوان والرسالة مطلوبة"
-            });
-        }
-
-        // ==========================================
-        // التأكد أن الطالب موجود
-        // ==========================================
-
-        const student = await db.query(
-            `SELECT id
-             FROM public.students
-             WHERE id = $1`,
-            [student_id]
-        );
-
-        if (student.rows.length === 0) {
-            return res.status(404).json({
-                error: "الطالب غير موجود"
-            });
-        }
-
-        const result = await db.query(
-            `INSERT INTO public.notifications
-            (
-                student_id,
-                title,
-                message,
-                is_read
-            )
-            VALUES
-            (
-                $1,
-                $2,
-                $3,
-                $4
-            )
-            RETURNING *`,
-            [
-                student_id,
-                title,
-                message,
-                is_read === true
-            ]
-        );
-
-        res.status(201).json({
-            message: "تمت إضافة الإشعار",
-            notification: result.rows[0]
-        });
-
-    } catch (error) {
-        console.error("POST /notifications error:", error);
-
-        res.status(500).json({
-            error: "Database error"
-        });
-    }
-});
-
-
-// ==========================================
-// تعديل إشعار الطالب
-// ==========================================
-
-router.put("/:id", async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        const {
-            student_id,
-            title,
-            message,
-            is_read
-        } = req.body;
-
-        if (!student_id) {
-            return res.status(400).json({
-                error: "student_id مطلوب"
-            });
-        }
-
-        if (!title || !message) {
-            return res.status(400).json({
-                error: "العنوان والرسالة مطلوبان"
-            });
-        }
-
-        // ==========================================
-        // التأكد أن الإشعار يخص الطالب
-        // ==========================================
-
-        const ownership = await db.query(
-            `SELECT id
-             FROM public.notifications
-             WHERE id = $1
-             AND student_id = $2`,
-            [id, student_id]
-        );
-
-        if (ownership.rows.length === 0) {
-            return res.status(403).json({
-                error: "لا يمكنك تعديل هذا الإشعار"
-            });
-        }
-
-        const result = await db.query(
-            `UPDATE public.notifications
-             SET
-                title = $1,
-                message = $2,
-                is_read = $3
-             WHERE id = $4
-             AND student_id = $5
-             RETURNING *`,
-            [
-                title,
-                message,
-                is_read === true,
-                id,
-                student_id
-            ]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({
-                error: "الإشعار غير موجود"
-            });
-        }
-
-        res.json({
-            message: "تم تعديل الإشعار",
-            notification: result.rows[0]
-        });
-
-    } catch (error) {
-        console.error("PUT /notifications/:id error:", error);
-
-        res.status(500).json({
-            error: "Database error"
-        });
-    }
-});
-
-
-// ==========================================
-// تحديد الإشعار كمقروء
-// ==========================================
-
-router.put("/:id/read", async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { student_id } = req.body;
-
-        if (!student_id) {
-            return res.status(400).json({
-                error: "student_id مطلوب"
-            });
-        }
+        const studentId = req.user.id;
 
         const result = await db.query(
             `UPDATE public.notifications
@@ -308,20 +86,17 @@ router.put("/:id/read", async (req, res) => {
              WHERE id = $1
              AND student_id = $2
              RETURNING *`,
-            [
-                id,
-                student_id
-            ]
+            [id, studentId]
         );
 
         if (result.rows.length === 0) {
             return res.status(404).json({
-                error: "الإشعار غير موجود أو لا يخص هذا الطالب"
+                error: "الإشعار غير موجود أو لا يخص حسابك"
             });
         }
 
         res.json({
-            message: "تم تحديد الإشعار كمقروء",
+            message: "تم تعليم الإشعار كمقروء",
             notification: result.rows[0]
         });
 
@@ -335,35 +110,56 @@ router.put("/:id/read", async (req, res) => {
 });
 
 
-// ==========================================
-// حذف إشعار الطالب
-// ==========================================
+// =========================
+// تعليم كل الإشعارات كمقروءة
+// =========================
+router.put("/read-all", authMiddleware, async (req, res) => {
+    try {
+        const studentId = req.user.id;
 
-router.delete("/:id", async (req, res) => {
+        const result = await db.query(
+            `UPDATE public.notifications
+             SET is_read = true
+             WHERE student_id = $1
+             AND is_read = false
+             RETURNING id`,
+            [studentId]
+        );
+
+        res.json({
+            message: "تم تعليم كل الإشعارات كمقروءة",
+            updated: result.rows.length
+        });
+
+    } catch (error) {
+        console.error("PUT /notifications/read-all error:", error);
+
+        res.status(500).json({
+            error: "Database error"
+        });
+    }
+});
+
+
+// =========================
+// حذف إشعار
+// =========================
+router.delete("/:id", authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
-        const { student_id } = req.query;
-
-        if (!student_id) {
-            return res.status(400).json({
-                error: "student_id مطلوب"
-            });
-        }
+        const studentId = req.user.id;
 
         const result = await db.query(
             `DELETE FROM public.notifications
              WHERE id = $1
              AND student_id = $2
              RETURNING *`,
-            [
-                id,
-                student_id
-            ]
+            [id, studentId]
         );
 
         if (result.rows.length === 0) {
             return res.status(404).json({
-                error: "الإشعار غير موجود أو لا يخص هذا الطالب"
+                error: "الإشعار غير موجود أو لا يخص حسابك"
             });
         }
 
