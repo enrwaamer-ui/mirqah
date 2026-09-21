@@ -161,6 +161,11 @@
             color: #555;
         }
 
+        .loading {
+            color: #777;
+            padding: 10px;
+        }
+
         @media (max-width: 700px) {
 
             .form-grid {
@@ -192,7 +197,7 @@
         </h1>
 
         <p>
-            تسجيل الطالب في المادة حتى تظهر له المحاضرات والامتحانات الخاصة بها
+            تسجيل الطلاب في المواد حتى تظهر لهم المحاضرات والامتحانات الخاصة بهم
         </p>
 
         <a
@@ -345,7 +350,7 @@
             <input
                 type="text"
                 id="search"
-                placeholder="🔎 ابحث باسم الطالب أو المادة..."
+                placeholder="🔎 ابحث باسم الطالب أو رقم الطالب أو المادة..."
                 oninput="filterEnrollments()"
             >
 
@@ -430,6 +435,8 @@
 
     let enrollments = [];
 
+    const token = localStorage.getItem("token");
+
 
     const studentSelect =
         document.getElementById("student");
@@ -445,6 +452,125 @@
 
     const message =
         document.getElementById("message");
+
+
+    // ==========================================
+    // Headers
+    // ==========================================
+
+    function authHeaders(includeJson = false) {
+
+        const headers = {
+            "Authorization": "Bearer " + token
+        };
+
+        if (includeJson) {
+            headers["Content-Type"] =
+                "application/json";
+        }
+
+        return headers;
+    }
+
+
+    // ==========================================
+    // التأكد من الأدمن
+    // ==========================================
+
+    async function checkAdminAccess() {
+
+        if (!token) {
+
+            window.location.href =
+                "index.html";
+
+            return false;
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "/students/me",
+                    {
+                        method: "GET",
+                        headers: authHeaders()
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok || !data.student) {
+
+                localStorage.removeItem("token");
+                localStorage.removeItem("student");
+
+                window.location.href =
+                    "index.html";
+
+                return false;
+            }
+
+
+            if (data.student.role !== "admin") {
+
+                alert(
+                    "ليس لديك صلاحية الدخول إلى هذه الصفحة."
+                );
+
+                window.location.href =
+                    "dashboard.html";
+
+                return false;
+            }
+
+
+            return true;
+
+
+        } catch (error) {
+
+            console.error(
+                "Admin check error:",
+                error
+            );
+
+            alert(
+                "حدث خطأ أثناء التحقق من صلاحية الحساب."
+            );
+
+            window.location.href =
+                "dashboard.html";
+
+            return false;
+        }
+
+    }
+
+
+    // ==========================================
+    // معالجة انتهاء الجلسة
+    // ==========================================
+
+    function handleUnauthorized(response) {
+
+        if (response.status === 401) {
+
+            localStorage.removeItem("token");
+            localStorage.removeItem("student");
+
+            window.location.href =
+                "index.html";
+
+            return true;
+        }
+
+        return false;
+    }
 
 
     // ==========================================
@@ -478,20 +604,37 @@
         try {
 
             const response =
-                await fetch("/students");
+                await fetch(
+                    "/students",
+                    {
+                        method: "GET",
+                        headers: authHeaders()
+                    }
+                );
+
+
+            if (handleUnauthorized(response)) {
+                return;
+            }
+
+
+            const data =
+                await response.json();
 
 
             if (!response.ok) {
 
                 throw new Error(
+                    data.error ||
                     "فشل تحميل الطلاب"
                 );
-
             }
 
 
             const students =
-                await response.json();
+                Array.isArray(data)
+                    ? data
+                    : [];
 
 
             studentSelect.innerHTML =
@@ -509,19 +652,35 @@
 
 
                 option.textContent =
-                    student.name +
-                    " - " +
-                    student.student_id;
+                    (
+                        student.name ||
+                        student.full_name ||
+                        "بدون اسم"
+                    )
+                    +
+                    " - "
+                    +
+                    (
+                        student.student_id ||
+                        student.student_id_number ||
+                        student.student_number ||
+                        "-"
+                    );
 
 
-                studentSelect.appendChild(option);
+                studentSelect.appendChild(
+                    option
+                );
 
             });
 
 
         } catch (error) {
 
-            console.error(error);
+            console.error(
+                "Load students error:",
+                error
+            );
 
 
             studentSelect.innerHTML =
@@ -541,20 +700,37 @@
         try {
 
             const response =
-                await fetch("/subjects");
+                await fetch(
+                    "/subjects/admin/all",
+                    {
+                        method: "GET",
+                        headers: authHeaders()
+                    }
+                );
+
+
+            if (handleUnauthorized(response)) {
+                return;
+            }
+
+
+            const data =
+                await response.json();
 
 
             if (!response.ok) {
 
                 throw new Error(
+                    data.error ||
                     "فشل تحميل المواد"
                 );
-
             }
 
 
             const subjects =
-                await response.json();
+                Array.isArray(data)
+                    ? data
+                    : [];
 
 
             subjectSelect.innerHTML =
@@ -580,14 +756,19 @@
                     );
 
 
-                subjectSelect.appendChild(option);
+                subjectSelect.appendChild(
+                    option
+                );
 
             });
 
 
         } catch (error) {
 
-            console.error(error);
+            console.error(
+                "Load subjects error:",
+                error
+            );
 
 
             subjectSelect.innerHTML =
@@ -607,20 +788,37 @@
         try {
 
             const response =
-                await fetch("/enrollments");
+                await fetch(
+                    "/enrollments/admin/all",
+                    {
+                        method: "GET",
+                        headers: authHeaders()
+                    }
+                );
+
+
+            if (handleUnauthorized(response)) {
+                return;
+            }
+
+
+            const data =
+                await response.json();
 
 
             if (!response.ok) {
 
                 throw new Error(
+                    data.error ||
                     "فشل تحميل التسجيلات"
                 );
-
             }
 
 
             enrollments =
-                await response.json();
+                Array.isArray(data)
+                    ? data
+                    : [];
 
 
             renderEnrollments(
@@ -630,7 +828,10 @@
 
         } catch (error) {
 
-            console.error(error);
+            console.error(
+                "Load enrollments error:",
+                error
+            );
 
 
             enrollmentsTable.innerHTML = `
@@ -641,7 +842,10 @@
                         colspan="7"
                         class="empty"
                     >
-                        حدث خطأ أثناء تحميل التسجيلات
+                        ${escapeHtml(
+                            error.message ||
+                            "حدث خطأ أثناء تحميل التسجيلات"
+                        )}
                     </td>
 
                 </tr>
@@ -690,7 +894,6 @@
             `;
 
             return;
-
         }
 
 
@@ -704,38 +907,48 @@
 
                 <td>
                     ${escapeHtml(
-                        enrollment.student_name || "-"
+                        enrollment.student_name ||
+                        "-"
                     )}
                 </td>
 
                 <td>
                     ${escapeHtml(
-                        enrollment.student_id || "-"
+                        enrollment.student_number ||
+                        enrollment.student_id_number ||
+                        enrollment.student_code ||
+                        enrollment.student_id_text ||
+                        "-"
                     )}
                 </td>
 
                 <td>
                     ${escapeHtml(
-                        enrollment.subject_name || "-"
+                        enrollment.subject_name ||
+                        "-"
                     )}
                 </td>
 
                 <td>
                     ${escapeHtml(
-                        enrollment.academic_year || "-"
+                        enrollment.academic_year ||
+                        "-"
                     )}
                 </td>
 
                 <td>
                     ${escapeHtml(
-                        enrollment.semester || "-"
+                        enrollment.semester ||
+                        "-"
                     )}
                 </td>
 
                 <td>
-                    ${enrollment.status === "active"
-                        ? "نشط"
-                        : "غير نشط"}
+                    ${
+                        enrollment.status === "active"
+                            ? "نشط"
+                            : "غير نشط"
+                    }
                 </td>
 
                 <td>
@@ -743,7 +956,7 @@
                     <button
                         class="delete-btn"
                         onclick="deleteEnrollment(
-                            ${enrollment.id}
+                            ${Number(enrollment.id)}
                         )"
                     >
                         حذف
@@ -770,7 +983,8 @@
     function filterEnrollments() {
 
         const search =
-            document.getElementById("search")
+            document
+                .getElementById("search")
                 .value
                 .trim()
                 .toLowerCase();
@@ -783,38 +997,45 @@
             );
 
             return;
-
         }
 
 
         const filtered =
-            enrollments.filter(enrollment => {
+            enrollments.filter(
+                enrollment => {
 
-                const student =
-                    String(
-                        enrollment.student_name || ""
-                    ).toLowerCase();
-
-
-                const studentId =
-                    String(
-                        enrollment.student_id || ""
-                    ).toLowerCase();
+                    const student =
+                        String(
+                            enrollment.student_name ||
+                            ""
+                        ).toLowerCase();
 
 
-                const subject =
-                    String(
-                        enrollment.subject_name || ""
-                    ).toLowerCase();
+                    const studentNumber =
+                        String(
+                            enrollment.student_number ||
+                            enrollment.student_id_number ||
+                            enrollment.student_code ||
+                            enrollment.student_id_text ||
+                            ""
+                        ).toLowerCase();
 
 
-                return (
-                    student.includes(search) ||
-                    studentId.includes(search) ||
-                    subject.includes(search)
-                );
+                    const subject =
+                        String(
+                            enrollment.subject_name ||
+                            ""
+                        ).toLowerCase();
 
-            });
+
+                    return (
+                        student.includes(search) ||
+                        studentNumber.includes(search) ||
+                        subject.includes(search)
+                    );
+
+                }
+            );
 
 
         renderEnrollments(
@@ -839,21 +1060,22 @@
 
 
         const academicYear =
-            document.getElementById(
-                "academicYear"
-            ).value.trim();
+            document
+                .getElementById("academicYear")
+                .value
+                .trim();
 
 
         const semester =
-            document.getElementById(
-                "semester"
-            ).value;
+            document
+                .getElementById("semester")
+                .value;
 
 
         const status =
-            document.getElementById(
-                "status"
-            ).value;
+            document
+                .getElementById("status")
+                .value;
 
 
         if (!studentId) {
@@ -864,7 +1086,6 @@
             );
 
             return;
-
         }
 
 
@@ -876,7 +1097,6 @@
             );
 
             return;
-
         }
 
 
@@ -884,36 +1104,43 @@
 
             const response =
                 await fetch(
-                    "/enrollments",
+                    "/enrollments/admin",
                     {
                         method: "POST",
 
-                        headers: {
-                            "Content-Type":
-                                "application/json"
-                        },
+                        headers:
+                            authHeaders(true),
 
-                        body: JSON.stringify({
+                        body:
+                            JSON.stringify({
 
-                            student_id:
-                                Number(studentId),
+                                student_id:
+                                    Number(studentId),
 
-                            subject_id:
-                                Number(subjectId),
+                                subject_id:
+                                    Number(subjectId),
 
-                            academic_year:
-                                academicYear || null,
+                                academic_year:
+                                    academicYear ||
+                                    null,
 
-                            semester:
-                                semester || null,
+                                semester:
+                                    semester ||
+                                    null,
 
-                            status:
-                                status
+                                status:
+                                    status
 
-                        })
-
+                            })
                     }
                 );
+
+
+            if (
+                handleUnauthorized(response)
+            ) {
+                return;
+            }
 
 
             const data =
@@ -926,11 +1153,11 @@
                     data.error ||
                     "فشل تسجيل الطالب"
                 );
-
             }
 
 
             showMessage(
+                data.message ||
                 "تم تسجيل الطالب في المادة بنجاح ✅",
                 "success"
             );
@@ -942,13 +1169,13 @@
             subjectSelect.value =
                 "";
 
-            document.getElementById(
-                "academicYear"
-            ).value = "";
+            document
+                .getElementById("academicYear")
+                .value = "";
 
-            document.getElementById(
-                "semester"
-            ).value = "";
+            document
+                .getElementById("semester")
+                .value = "";
 
 
             await loadEnrollments();
@@ -956,7 +1183,10 @@
 
         } catch (error) {
 
-            console.error(error);
+            console.error(
+                "Add enrollment error:",
+                error
+            );
 
 
             showMessage(
@@ -983,9 +1213,7 @@
 
 
         if (!confirmed) {
-
             return;
-
         }
 
 
@@ -993,11 +1221,21 @@
 
             const response =
                 await fetch(
-                    "/enrollments/" + id,
+                    "/enrollments/admin/" + id,
                     {
-                        method: "DELETE"
+                        method: "DELETE",
+
+                        headers:
+                            authHeaders()
                     }
                 );
+
+
+            if (
+                handleUnauthorized(response)
+            ) {
+                return;
+            }
 
 
             const data =
@@ -1010,11 +1248,11 @@
                     data.error ||
                     "فشل حذف التسجيل"
                 );
-
             }
 
 
             showMessage(
+                data.message ||
                 "تم حذف التسجيل بنجاح ✅",
                 "success"
             );
@@ -1025,7 +1263,10 @@
 
         } catch (error) {
 
-            console.error(error);
+            console.error(
+                "Delete enrollment error:",
+                error
+            );
 
 
             showMessage(
@@ -1059,11 +1300,24 @@
     // تشغيل الصفحة
     // ==========================================
 
-    loadStudents();
+    (async function() {
 
-    loadSubjects();
+        const allowed =
+            await checkAdminAccess();
 
-    loadEnrollments();
+
+        if (!allowed) {
+            return;
+        }
+
+
+        await loadStudents();
+
+        await loadSubjects();
+
+        await loadEnrollments();
+
+    })();
 
 </script>
 
