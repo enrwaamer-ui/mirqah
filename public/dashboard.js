@@ -1,81 +1,146 @@
-const studentData = localStorage.getItem("student");
 
-if (!studentData) {
+const token = localStorage.getItem("token");
 
+if (!token) {
     window.location.href = "index.html";
-
 } else {
 
-    const student = JSON.parse(studentData);
+    // =========================
+    // دالة الطلبات مع التوكن
+    // =========================
+    async function apiFetch(url, options = {}) {
+
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                ...(options.headers || {}),
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "حدث خطأ في الاتصال بالسيرفر");
+        }
+
+        return data;
+    }
 
 
-    // اسم الطالب
-    document.getElementById("studentName").textContent =
-        student.name;
+    // =========================
+    // تحميل بيانات الطالب
+    // =========================
+    async function loadStudent() {
+
+        try {
+
+            const student = await apiFetch("/students/me");
+
+            document.getElementById("studentName").textContent =
+                student.name || "الطالب";
+
+        } catch (error) {
+
+            console.error("Student error:", error);
+
+            // لو التوكن منتهي أو غير صالح
+            if (
+                error.message.includes("جلسة") ||
+                error.message.includes("تسجيل الدخول")
+            ) {
+                logout();
+                return;
+            }
+
+            document.getElementById("studentName").textContent =
+                "الطالب";
+        }
+    }
 
 
+    // =========================
     // عدد المواد
-    fetch(`/subjects?student_id=${student.id}`)
-        .then(response => response.json())
-        .then(data => {
+    // =========================
+    async function loadSubjectsCount() {
+
+        try {
+
+            const data = await apiFetch("/subjects");
 
             document.getElementById("subjectsCount").textContent =
-                data.length;
+                Array.isArray(data) ? data.length : 0;
 
-        })
-        .catch(error => {
+        } catch (error) {
 
-            console.error(error);
+            console.error("Subjects count error:", error);
 
-        });
+            document.getElementById("subjectsCount").textContent = "0";
+        }
+    }
 
 
+    // =========================
     // عدد المحاضرات
-    fetch(`/lectures?student_id=${student.id}`)
-        .then(response => response.json())
-        .then(data => {
+    // =========================
+    async function loadLecturesCount() {
+
+        try {
+
+            const data = await apiFetch("/lectures");
 
             document.getElementById("lecturesCount").textContent =
-                data.length;
+                Array.isArray(data) ? data.length : 0;
 
-        })
-        .catch(error => {
+        } catch (error) {
 
-            console.error(error);
+            console.error("Lectures count error:", error);
 
-        });
+            document.getElementById("lecturesCount").textContent = "0";
+        }
+    }
 
 
+    // =========================
     // عدد الامتحانات
-    fetch(`/exams?student_id=${student.id}`)
-        .then(response => response.json())
-        .then(data => {
+    // =========================
+    async function loadExamsCount() {
+
+        try {
+
+            const data = await apiFetch("/exams");
 
             document.getElementById("examsCount").textContent =
-                data.length;
+                Array.isArray(data) ? data.length : 0;
 
-        })
-        .catch(error => {
+        } catch (error) {
 
-            console.error(error);
+            console.error("Exams count error:", error);
 
-        });
+            document.getElementById("examsCount").textContent = "0";
+        }
+    }
 
 
+    // =========================
     // عدد الإشعارات غير المقروءة
-    fetch(`/notifications/count?student_id=${student.id}`)
-        .then(response => response.json())
-        .then(data => {
+    // =========================
+    async function loadNotificationsCount() {
+
+        try {
+
+            const data = await apiFetch("/notifications/unread-count");
 
             document.getElementById("notificationsCount").textContent =
-                data.count;
+                data.count ?? 0;
 
-        })
-        .catch(error => {
+        } catch (error) {
 
-            console.error(error);
+            console.error("Notifications count error:", error);
 
-        });
+            document.getElementById("notificationsCount").textContent = "0";
+        }
+    }
 
 
     // =========================
@@ -111,10 +176,6 @@ if (!studentData) {
             return "غير محدد";
         }
 
-        // لو الوقت جاي بالشكل:
-        // 08:00:00
-        // نخليه:
-        // 08:00
         const match = String(timeValue).match(/^(\d{2}):(\d{2})/);
 
         if (match) {
@@ -128,15 +189,17 @@ if (!studentData) {
     // =========================
     // المحاضرة القادمة
     // =========================
-    fetch(`/lectures/next?student_id=${student.id}`)
-        .then(response => response.json())
-        .then(lecture => {
+    async function loadNextLecture() {
 
-            const nextLecture =
-                document.getElementById("nextLecture");
+        const nextLecture =
+            document.getElementById("nextLecture");
+
+        try {
+
+            const lecture = await apiFetch("/lectures/next");
 
 
-            if (!lecture || lecture.error) {
+            if (!lecture) {
 
                 nextLecture.innerHTML =
                     "<p>مافيش محاضرات قادمة حاليًا.</p>";
@@ -191,26 +254,39 @@ if (!studentData) {
 
             `;
 
-        })
-        .catch(error => {
+        } catch (error) {
 
-            console.error(error);
+            console.error("Next lecture error:", error);
 
-            document.getElementById("nextLecture").innerHTML =
+            nextLecture.innerHTML =
                 "<p>حدث خطأ في تحميل المحاضرة القادمة.</p>";
-
-        });
-
-}
+        }
+    }
 
 
-// =========================
-// تسجيل الخروج
-// =========================
-function logout() {
+    // =========================
+    // تسجيل الخروج
+    // =========================
+    function logout() {
 
-    localStorage.removeItem("student");
+        localStorage.removeItem("token");
+        localStorage.removeItem("student");
 
-    window.location.href = "index.html";
+        window.location.href = "index.html";
+    }
 
+
+    // نجعل logout متاحًا لزر HTML
+    window.logout = logout;
+
+
+    // =========================
+    // تشغيل الصفحة
+    // =========================
+    loadStudent();
+    loadSubjectsCount();
+    loadLecturesCount();
+    loadExamsCount();
+    loadNotificationsCount();
+    loadNextLecture();
 }
