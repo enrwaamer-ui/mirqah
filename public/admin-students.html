@@ -164,6 +164,16 @@
             font-weight: bold;
         }
 
+        #pageMessage {
+            display: none;
+            background: #f8d7da;
+            color: #842029;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
         @media (max-width: 700px) {
             .form-grid {
                 grid-template-columns: 1fr;
@@ -184,7 +194,8 @@
 
 <div class="container">
 
-    <!-- العنوان -->
+    <div id="pageMessage"></div>
+
     <div class="header">
 
         <h1>👨‍🎓 إدارة الطلاب</h1>
@@ -386,6 +397,7 @@
 
     let students = [];
 
+    const token = localStorage.getItem("token");
 
     const studentsTable =
         document.getElementById("studentsTable");
@@ -395,6 +407,86 @@
 
     const message =
         document.getElementById("message");
+
+    const pageMessage =
+        document.getElementById("pageMessage");
+
+
+    // =========================================
+    // التأكد من تسجيل الدخول وصلاحية Admin
+    // =========================================
+
+    async function checkAdminAccess() {
+
+        if (!token) {
+            window.location.href = "index.html";
+            return false;
+        }
+
+        try {
+
+            const response = await fetch("/students/me", {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                localStorage.removeItem("token");
+                localStorage.removeItem("student");
+                window.location.href = "index.html";
+                return false;
+            }
+
+            if (data.role !== "admin") {
+
+                pageMessage.textContent =
+                    "ليس لديك صلاحية للوصول إلى إدارة الطلاب.";
+
+                pageMessage.style.display = "block";
+
+                document.querySelectorAll(".card").forEach(card => {
+                    card.style.display = "none";
+                });
+
+                return false;
+            }
+
+            return true;
+
+        } catch (error) {
+
+            console.error("Admin access error:", error);
+
+            pageMessage.textContent =
+                "حدث خطأ أثناء التحقق من صلاحيات الحساب.";
+
+            pageMessage.style.display = "block";
+
+            return false;
+        }
+    }
+
+
+    // =========================================
+    // Headers
+    // =========================================
+
+    function authHeaders(includeJson = false) {
+
+        const headers = {
+            "Authorization": `Bearer ${token}`
+        };
+
+        if (includeJson) {
+            headers["Content-Type"] = "application/json";
+        }
+
+        return headers;
+    }
 
 
     // =========================================
@@ -414,7 +506,6 @@
                 "message";
 
         }, 4000);
-
     }
 
 
@@ -427,24 +518,29 @@
         try {
 
             const response =
-                await fetch("/students");
+                await fetch("/students", {
+                    method: "GET",
+                    headers: authHeaders()
+                });
+
+            const data =
+                await response.json();
 
             if (!response.ok) {
 
                 throw new Error(
+                    data.error ||
                     "فشل تحميل الطلاب"
                 );
-
             }
 
-            students =
-                await response.json();
+            students = data;
 
             renderStudents(students);
 
         } catch (error) {
 
-            console.error(error);
+            console.error("Load students error:", error);
 
             studentsTable.innerHTML = `
                 <tr>
@@ -452,16 +548,17 @@
                         colspan="7"
                         class="empty"
                     >
-                        حدث خطأ أثناء تحميل الطلاب
+                        ${escapeHtml(
+                            error.message ||
+                            "حدث خطأ أثناء تحميل الطلاب"
+                        )}
                     </td>
                 </tr>
             `;
 
             studentCount.textContent =
                 "تعذر تحميل الطلاب";
-
         }
-
     }
 
 
@@ -473,10 +570,8 @@
 
         studentsTable.innerHTML = "";
 
-
         studentCount.textContent =
             "عدد الطلاب: " + list.length;
-
 
         if (list.length === 0) {
 
@@ -540,11 +635,9 @@
 
             `;
 
-
             studentsTable.appendChild(row);
 
         });
-
     }
 
 
@@ -598,7 +691,6 @@
 
 
         renderStudents(filtered);
-
     }
 
 
@@ -687,6 +779,17 @@
         }
 
 
+        if (password.length < 6) {
+
+            showMessage(
+                "كلمة المرور يجب أن تكون 6 أحرف على الأقل",
+                "error"
+            );
+
+            return;
+        }
+
+
         try {
 
             const response =
@@ -695,10 +798,7 @@
                     {
                         method: "POST",
 
-                        headers: {
-                            "Content-Type":
-                                "application/json"
-                        },
+                        headers: authHeaders(true),
 
                         body: JSON.stringify({
 
@@ -738,7 +838,6 @@
                     data.error ||
                     "فشل إضافة الطالب"
                 );
-
             }
 
 
@@ -755,16 +854,14 @@
 
         } catch (error) {
 
-            console.error(error);
+            console.error("Add student error:", error);
 
             showMessage(
                 error.message ||
                 "حدث خطأ أثناء إضافة الطالب",
                 "error"
             );
-
         }
-
     }
 
 
@@ -781,9 +878,7 @@
 
 
         if (!confirmed) {
-
             return;
-
         }
 
 
@@ -793,7 +888,8 @@
                 await fetch(
                     "/students/" + id,
                     {
-                        method: "DELETE"
+                        method: "DELETE",
+                        headers: authHeaders()
                     }
                 );
 
@@ -808,7 +904,6 @@
                     data.error ||
                     "فشل حذف الطالب"
                 );
-
             }
 
 
@@ -823,16 +918,14 @@
 
         } catch (error) {
 
-            console.error(error);
+            console.error("Delete student error:", error);
 
             showMessage(
                 error.message ||
                 "حدث خطأ أثناء حذف الطالب",
                 "error"
             );
-
         }
-
     }
 
 
@@ -842,27 +935,13 @@
 
     function clearForm() {
 
-        document.getElementById("studentId")
-            .value = "";
-
-        document.getElementById("name")
-            .value = "";
-
-        document.getElementById("email")
-            .value = "";
-
-        document.getElementById("password")
-            .value = "";
-
-        document.getElementById("major")
-            .value = "";
-
-        document.getElementById("university")
-            .value = "";
-
-        document.getElementById("academicYear")
-            .value = "";
-
+        document.getElementById("studentId").value = "";
+        document.getElementById("name").value = "";
+        document.getElementById("email").value = "";
+        document.getElementById("password").value = "";
+        document.getElementById("major").value = "";
+        document.getElementById("university").value = "";
+        document.getElementById("academicYear").value = "";
     }
 
 
@@ -878,7 +957,6 @@
             .replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
-
     }
 
 
@@ -886,7 +964,20 @@
     // تشغيل الصفحة
     // =========================================
 
-    loadStudents();
+    async function init() {
+
+        const isAdmin =
+            await checkAdminAccess();
+
+        if (!isAdmin) {
+            return;
+        }
+
+        await loadStudents();
+    }
+
+
+    init();
 
 </script>
 
