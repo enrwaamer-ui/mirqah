@@ -4,10 +4,6 @@ const router = express.Router();
 const db = require("../db");
 const authMiddleware = require("../middleware/auth");
 
-// ============================================
-// التحقق من صلاحية المدير
-// ============================================
-
 function adminOnly(req, res, next) {
     if (!req.user || req.user.role !== "admin") {
         return res.status(403).json({
@@ -19,38 +15,25 @@ function adminOnly(req, res, next) {
 }
 
 // =====================================================
-// ADMIN ROUTES
+// ADMIN - GET ALL SUBJECTS
 // =====================================================
-
-// ============================================
-// عرض جميع المواد للإدارة
-// GET /subjects/admin/all
-// ============================================
 
 router.get("/admin/all", authMiddleware, adminOnly, async (req, res) => {
     try {
-        const result = await db.query(
-            `SELECT
+        const result = await db.query(`
+            SELECT
                 subjects.id,
                 subjects.name,
                 subjects.code,
+                subjects.student_id,
                 subjects.created_at,
-                COUNT(
-                    CASE
-                        WHEN enrollments.status = 'active'
-                        THEN enrollments.id
-                    END
-                ) AS students_count
-             FROM public.subjects
-             LEFT JOIN public.enrollments
-                ON enrollments.subject_id = subjects.id
-             GROUP BY
-                subjects.id,
-                subjects.name,
-                subjects.code,
-                subjects.created_at
-             ORDER BY subjects.name`
-        );
+                students.name AS student_name,
+                students.student_id AS student_number
+            FROM public.subjects
+            LEFT JOIN public.students
+                ON subjects.student_id = students.id
+            ORDER BY subjects.created_at DESC
+        `);
 
         res.json(result.rows);
 
@@ -63,10 +46,9 @@ router.get("/admin/all", authMiddleware, adminOnly, async (req, res) => {
     }
 });
 
-// ============================================
-// إضافة مادة من الإدارة
-// POST /subjects/admin
-// ============================================
+// =====================================================
+// ADMIN - CREATE GLOBAL SUBJECT
+// =====================================================
 
 router.post("/admin", authMiddleware, adminOnly, async (req, res) => {
     try {
@@ -90,7 +72,8 @@ router.post("/admin", authMiddleware, adminOnly, async (req, res) => {
         const existing = await db.query(
             `SELECT id
              FROM public.subjects
-             WHERE code = $1`,
+             WHERE code = $1
+             AND student_id IS NULL`,
             [cleanCode]
         );
 
@@ -102,9 +85,10 @@ router.post("/admin", authMiddleware, adminOnly, async (req, res) => {
 
         const result = await db.query(
             `INSERT INTO public.subjects
-            (name, code)
-            VALUES ($1, $2)
-            RETURNING id, name, code, created_at`,
+                (name, code, student_id)
+             VALUES
+                ($1, $2, NULL)
+             RETURNING id, name, code, student_id, created_at`,
             [cleanName, cleanCode]
         );
 
@@ -122,10 +106,78 @@ router.post("/admin", authMiddleware, adminOnly, async (req, res) => {
     }
 });
 
-// ============================================
-// حذف مادة من الإدارة
-// DELETE /subjects/admin/:id
-// ============================================
+// =====================================================
+// ADMIN - UPDATE SUBJECT
+// =====================================================
+
+router.put("/admin/:id", authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, code } = req.body;
+
+        if (!name || !code) {
+            return res.status(400).json({
+                error: "اسم المادة وكود المادة مطلوبان"
+            });
+        }
+
+        const cleanName = String(name).trim();
+        const cleanCode = String(code).trim();
+
+        const subject = await db.query(
+            `SELECT id
+             FROM public.subjects
+             WHERE id = $1`,
+            [id]
+        );
+
+        if (subject.rows.length === 0) {
+            return res.status(404).json({
+                error: "المادة غير موجودة"
+            });
+        }
+
+        const duplicate = await db.query(
+            `SELECT id
+             FROM public.subjects
+             WHERE code = $1
+             AND id <> $2
+             AND student_id IS NULL`,
+            [cleanCode, id]
+        );
+
+        if (duplicate.rows.length > 0) {
+            return res.status(400).json({
+                error: "رمز المادة مستخدم لمادة أخرى"
+            });
+        }
+
+        const result = await db.query(
+            `UPDATE public.subjects
+             SET name = $1,
+                 code = $2
+             WHERE id = $3
+             RETURNING id, name, code, student_id, created_at`,
+            [cleanName, cleanCode, id]
+        );
+
+        res.json({
+            message: "تم تعديل المادة بنجاح",
+            subject: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error("PUT /subjects/admin/:id error:", error);
+
+        res.status(500).json({
+            error: "Database error"
+        });
+    }
+});
+
+// =====================================================
+// ADMIN - DELETE SUBJECT
+// =====================================================
 
 router.delete("/admin/:id", authMiddleware, adminOnly, async (req, res) => {
     try {
@@ -147,7 +199,7 @@ router.delete("/admin/:id", authMiddleware, adminOnly, async (req, res) => {
         const result = await db.query(
             `DELETE FROM public.subjects
              WHERE id = $1
-             RETURNING id, name, code`,
+             RETURNING id, name, code, student_id`,
             [id]
         );
 
@@ -160,95 +212,14 @@ router.delete("/admin/:id", authMiddleware, adminOnly, async (req, res) => {
         console.error("DELETE /subjects/admin/:id error:", error);
 
         res.status(500).json({
-            error:
-                "لا يمكن حذف المادة لأنها مرتبطة ببيانات أخرى أو حدث خطأ في قاعدة البيانات"
-        });
-    }
-});
-
-// ============================================
-// تعديل مادة من الإدارة
-// PUT /subjects/admin/:id
-// ============================================
-
-router.put("/admin/:id", authMiddleware, adminOnly, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { name, code } = req.body;
-
-        if (!name || !code) {
-            return res.status(400).json({
-                error: "اسم المادة وكود المادة مطلوبان"
-            });
-        }
-
-        const cleanName = String(name).trim();
-        const cleanCode = String(code).trim();
-
-        if (!cleanName || !cleanCode) {
-            return res.status(400).json({
-                error: "اسم المادة وكود المادة مطلوبان"
-            });
-        }
-
-        const subject = await db.query(
-            `SELECT id
-             FROM public.subjects
-             WHERE id = $1`,
-            [id]
-        );
-
-        if (subject.rows.length === 0) {
-            return res.status(404).json({
-                error: "المادة غير موجودة"
-            });
-        }
-
-        const duplicate = await db.query(
-            `SELECT id
-             FROM public.subjects
-             WHERE code = $1
-             AND id <> $2`,
-            [cleanCode, id]
-        );
-
-        if (duplicate.rows.length > 0) {
-            return res.status(400).json({
-                error: "رمز المادة مستخدم لمادة أخرى"
-            });
-        }
-
-        const result = await db.query(
-            `UPDATE public.subjects
-             SET name = $1,
-                 code = $2
-             WHERE id = $3
-             RETURNING id, name, code, created_at`,
-            [cleanName, cleanCode, id]
-        );
-
-        res.json({
-            message: "تم تعديل المادة بنجاح",
-            subject: result.rows[0]
-        });
-
-    } catch (error) {
-        console.error("PUT /subjects/admin/:id error:", error);
-
-        res.status(500).json({
-            error: "Database error"
+            error: "لا يمكن حذف المادة لأنها مرتبطة ببيانات أخرى أو حدث خطأ في قاعدة البيانات"
         });
     }
 });
 
 // =====================================================
-// STUDENT ROUTES
+// STUDENT - GET MY SUBJECTS
 // =====================================================
-
-// ============================================
-// عرض مواد الطالب الحالي
-// GET /subjects
-// ============================================
 
 router.get("/", authMiddleware, async (req, res) => {
     try {
@@ -256,17 +227,13 @@ router.get("/", authMiddleware, async (req, res) => {
 
         const result = await db.query(
             `SELECT
-                enrollments.id AS enrollment_id,
                 subjects.id,
                 subjects.name,
                 subjects.code,
-                enrollments.status,
-                enrollments.created_at
-             FROM public.enrollments
-             JOIN public.subjects
-                ON enrollments.subject_id = subjects.id
-             WHERE enrollments.student_id = $1
-             AND enrollments.status = 'active'
+                subjects.student_id,
+                subjects.created_at
+             FROM public.subjects
+             WHERE subjects.student_id = $1
              ORDER BY subjects.name`,
             [studentId]
         );
@@ -282,10 +249,9 @@ router.get("/", authMiddleware, async (req, res) => {
     }
 });
 
-// ============================================
-// عرض مادة واحدة للطالب الحالي
-// GET /subjects/:id
-// ============================================
+// =====================================================
+// STUDENT - GET ONE OF MY SUBJECTS
+// =====================================================
 
 router.get("/:id", authMiddleware, async (req, res) => {
     try {
@@ -294,24 +260,20 @@ router.get("/:id", authMiddleware, async (req, res) => {
 
         const result = await db.query(
             `SELECT
-                enrollments.id AS enrollment_id,
                 subjects.id,
                 subjects.name,
                 subjects.code,
-                enrollments.status,
-                enrollments.created_at
-             FROM public.enrollments
-             JOIN public.subjects
-                ON enrollments.subject_id = subjects.id
+                subjects.student_id,
+                subjects.created_at
+             FROM public.subjects
              WHERE subjects.id = $1
-             AND enrollments.student_id = $2
-             AND enrollments.status = 'active'`,
+             AND subjects.student_id = $2`,
             [id, studentId]
         );
 
         if (result.rows.length === 0) {
             return res.status(404).json({
-                error: "المادة غير موجودة أو غير مسجل فيها"
+                error: "المادة غير موجودة في حسابك"
             });
         }
 
@@ -326,76 +288,63 @@ router.get("/:id", authMiddleware, async (req, res) => {
     }
 });
 
-// ============================================
-// تسجيل الطالب في مادة موجودة
-// POST /subjects
-// ============================================
+// =====================================================
+// STUDENT - ADD MY SUBJECT
+// =====================================================
 
 router.post("/", authMiddleware, async (req, res) => {
     try {
-        const { subject_id } = req.body;
         const studentId = req.user.id;
 
-        if (!subject_id) {
+        const { name, code } = req.body;
+
+        if (!name) {
             return res.status(400).json({
-                error: "رقم المادة مطلوب"
+                error: "اسم المادة مطلوب"
             });
         }
 
-        const subject = await db.query(
-            `SELECT id, name, code
-             FROM public.subjects
-             WHERE id = $1`,
-            [subject_id]
-        );
+        const cleanName = String(name).trim();
+        const cleanCode = code ? String(code).trim() : null;
 
-        if (subject.rows.length === 0) {
-            return res.status(404).json({
-                error: "المادة غير موجودة"
+        if (!cleanName) {
+            return res.status(400).json({
+                error: "اسم المادة مطلوب"
             });
         }
 
+        // منع الطالب من إضافة نفس المادة مرتين
         const existing = await db.query(
-            `SELECT id, status
-             FROM public.enrollments
+            `SELECT id
+             FROM public.subjects
              WHERE student_id = $1
-             AND subject_id = $2`,
-            [studentId, subject_id]
+             AND LOWER(name) = LOWER($2)`,
+            [studentId, cleanName]
         );
 
         if (existing.rows.length > 0) {
-
-            if (existing.rows[0].status === "active") {
-                return res.status(400).json({
-                    error: "أنت مسجل في هذه المادة بالفعل"
-                });
-            }
-
-            const restored = await db.query(
-                `UPDATE public.enrollments
-                 SET status = 'active'
-                 WHERE id = $1
-                 RETURNING *`,
-                [existing.rows[0].id]
-            );
-
-            return res.status(201).json({
-                message: "تمت إعادة تسجيل المادة بنجاح",
-                enrollment: restored.rows[0]
+            return res.status(400).json({
+                error: "هذه المادة موجودة عندك بالفعل"
             });
         }
 
-        const enrollment = await db.query(
-            `INSERT INTO public.enrollments
-            (student_id, subject_id, status)
-            VALUES ($1, $2, 'active')
-            RETURNING *`,
-            [studentId, subject_id]
+        const result = await db.query(
+            `INSERT INTO public.subjects
+                (name, code, student_id)
+             VALUES
+                ($1, $2, $3)
+             RETURNING
+                id,
+                name,
+                code,
+                student_id,
+                created_at`,
+            [cleanName, cleanCode || null, studentId]
         );
 
         res.status(201).json({
-            message: "تم التسجيل في المادة بنجاح",
-            enrollment: enrollment.rows[0]
+            message: "تمت إضافة المادة بنجاح",
+            subject: result.rows[0]
         });
 
     } catch (error) {
@@ -407,21 +356,87 @@ router.post("/", authMiddleware, async (req, res) => {
     }
 });
 
-// ============================================
-// تعديل المادة للطالب
-// ممنوع للطالب
-// ============================================
+// =====================================================
+// STUDENT - UPDATE MY SUBJECT
+// =====================================================
 
 router.put("/:id", authMiddleware, async (req, res) => {
-    return res.status(403).json({
-        error: "تعديل بيانات المادة متاح للمدير فقط"
-    });
+    try {
+        const { id } = req.params;
+        const studentId = req.user.id;
+
+        const { name, code } = req.body;
+
+        if (!name) {
+            return res.status(400).json({
+                error: "اسم المادة مطلوب"
+            });
+        }
+
+        const cleanName = String(name).trim();
+        const cleanCode = code ? String(code).trim() : null;
+
+        const existing = await db.query(
+            `SELECT id
+             FROM public.subjects
+             WHERE id = $1
+             AND student_id = $2`,
+            [id, studentId]
+        );
+
+        if (existing.rows.length === 0) {
+            return res.status(404).json({
+                error: "المادة غير موجودة في حسابك"
+            });
+        }
+
+        const duplicate = await db.query(
+            `SELECT id
+             FROM public.subjects
+             WHERE student_id = $1
+             AND LOWER(name) = LOWER($2)
+             AND id <> $3`,
+            [studentId, cleanName, id]
+        );
+
+        if (duplicate.rows.length > 0) {
+            return res.status(400).json({
+                error: "هذه المادة موجودة عندك بالفعل"
+            });
+        }
+
+        const result = await db.query(
+            `UPDATE public.subjects
+             SET name = $1,
+                 code = $2
+             WHERE id = $3
+             AND student_id = $4
+             RETURNING
+                id,
+                name,
+                code,
+                student_id,
+                created_at`,
+            [cleanName, cleanCode || null, id, studentId]
+        );
+
+        res.json({
+            message: "تم تعديل المادة بنجاح",
+            subject: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error("PUT /subjects/:id error:", error);
+
+        res.status(500).json({
+            error: "Database error"
+        });
+    }
 });
 
-// ============================================
-// حذف المادة من مواد الطالب
-// DELETE /subjects/:id
-// ============================================
+// =====================================================
+// STUDENT - DELETE MY SUBJECT
+// =====================================================
 
 router.delete("/:id", authMiddleware, async (req, res) => {
     try {
@@ -429,31 +444,33 @@ router.delete("/:id", authMiddleware, async (req, res) => {
         const studentId = req.user.id;
 
         const result = await db.query(
-            `UPDATE public.enrollments
-             SET status = 'inactive'
-             WHERE subject_id = $1
+            `DELETE FROM public.subjects
+             WHERE id = $1
              AND student_id = $2
-             AND status = 'active'
-             RETURNING *`,
+             RETURNING
+                id,
+                name,
+                code,
+                student_id`,
             [id, studentId]
         );
 
         if (result.rows.length === 0) {
             return res.status(404).json({
-                error: "المادة غير موجودة في موادك"
+                error: "المادة غير موجودة في حسابك"
             });
         }
 
         res.json({
-            message: "تم حذف المادة من موادك",
-            enrollment: result.rows[0]
+            message: "تم حذف المادة بنجاح",
+            subject: result.rows[0]
         });
 
     } catch (error) {
         console.error("DELETE /subjects/:id error:", error);
 
         res.status(500).json({
-            error: "Database error"
+            error: "لا يمكن حذف المادة لأنها مرتبطة ببيانات أخرى أو حدث خطأ في قاعدة البيانات"
         });
     }
 });
