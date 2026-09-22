@@ -2,247 +2,359 @@
 <html lang="ar" dir="rtl">
 
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>المحاضرات - مِرقاة</title>
 
     <link rel="stylesheet" href="style.css">
 
+    <style>
+        .schedule-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .schedule-header h2 {
+            margin: 0;
+        }
+
+        .week-controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .week-controls button {
+            padding: 9px 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .schedule-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid #ddd;
+            background: white;
+        }
+
+        .schedule-table {
+            width: 100%;
+            min-width: 900px;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .schedule-table th,
+        .schedule-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+            vertical-align: top;
+        }
+
+        .schedule-table th {
+            background: #f5f5f5;
+            font-weight: bold;
+        }
+
+        .time-column {
+            width: 90px;
+            background: #fafafa;
+            font-weight: bold;
+        }
+
+        .day-date {
+            font-size: 12px;
+            color: #777;
+            margin-top: 4px;
+        }
+
+        .lecture-card {
+            background: #eef6ff;
+            border-right: 4px solid #2196f3;
+            border-radius: 8px;
+            padding: 9px;
+            margin-bottom: 7px;
+            text-align: right;
+        }
+
+        .lecture-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .lecture-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .lecture-subject {
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .lecture-time,
+        .lecture-hall {
+            font-size: 12px;
+            color: #555;
+            margin-top: 3px;
+        }
+
+        .lecture-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
+        }
+
+        .lecture-actions button {
+            flex: 1;
+            border: none;
+            border-radius: 6px;
+            padding: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .edit-btn {
+            background: #ffc107;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        .empty-cell {
+            color: #bbb;
+            min-height: 45px;
+        }
+
+        .week-title {
+            text-align: center;
+            font-size: 16px;
+            margin: 10px 0 15px;
+            color: #555;
+        }
+
+        @media (max-width: 700px) {
+            .schedule-table {
+                min-width: 850px;
+            }
+        }
+    </style>
 </head>
 
 <body>
 
     <header class="topbar">
-
-        <div class="logo-small">
-            مِرقاة
-        </div>
-
-        <a href="dashboard.html">
-            الرئيسية
-        </a>
-
+        <div class="logo-small">مِرقاة</div>
+        <a href="dashboard.html">الرئيسية</a>
     </header>
-
 
     <main class="dashboard">
 
         <section class="welcome-card">
-
-            <h1>
-                🎓 المحاضرات
-            </h1>
-
-            <p>
-                أضف جدول محاضراتك الدراسية
-            </p>
-
+            <h1>📚 المحاضرات</h1>
+            <p>نظّم محاضراتك حسب اليوم والوقت</p>
         </section>
-
-
-        <!-- إضافة محاضرة -->
 
         <section class="dashboard-section">
 
-            <h2>
-                ➕ إضافة محاضرة
-            </h2>
-
+            <h2>➕ إضافة محاضرة</h2>
 
             <form id="addLectureForm">
 
-
-                <!-- المادة -->
-
                 <div style="margin-bottom:15px;">
-
-                    <label for="subjectId">
-                        المادة
-                    </label>
+                    <label for="subjectId">المادة</label>
 
                     <select
                         id="subjectId"
                         required
-                        style="
-                            width:100%;
-                            box-sizing:border-box;
-                            padding:12px;
-                            margin-top:8px;
-                        "
+                        style="width:100%; box-sizing:border-box; padding:12px; margin-top:8px;"
                     >
-
-                        <option value="">
-                            جاري تحميل المواد...
-                        </option>
-
+                        <option value="">جاري تحميل المواد...</option>
                     </select>
-
                 </div>
 
-
-                <!-- اسم المحاضرة -->
-
                 <div style="margin-bottom:15px;">
-
-                    <label for="lectureTitle">
-                        اسم المحاضرة
-                    </label>
+                    <label for="lectureTitle">اسم المحاضرة</label>
 
                     <input
                         type="text"
                         id="lectureTitle"
                         placeholder="مثال: المحاضرة الأولى"
                         required
-                        style="
-                            width:100%;
-                            box-sizing:border-box;
-                            padding:12px;
-                            margin-top:8px;
-                        "
+                        style="width:100%; box-sizing:border-box; padding:12px; margin-top:8px;"
                     >
-
                 </div>
 
-
-                <!-- التاريخ -->
-
                 <div style="margin-bottom:15px;">
-
-                    <label for="lectureDate">
-                        التاريخ
-                    </label>
+                    <label for="lectureDate">التاريخ</label>
 
                     <input
                         type="date"
                         id="lectureDate"
                         required
-                        style="
-                            width:100%;
-                            box-sizing:border-box;
-                            padding:12px;
-                            margin-top:8px;
-                        "
+                        style="width:100%; box-sizing:border-box; padding:12px; margin-top:8px;"
                     >
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+
+                    <div style="margin-bottom:15px;">
+                        <label for="startTime">من</label>
+
+                        <input
+                            type="time"
+                            id="startTime"
+                            required
+                            style="width:100%; box-sizing:border-box; padding:12px; margin-top:8px;"
+                        >
+                    </div>
+
+                    <div style="margin-bottom:15px;">
+                        <label for="endTime">إلى</label>
+
+                        <input
+                            type="time"
+                            id="endTime"
+                            required
+                            style="width:100%; box-sizing:border-box; padding:12px; margin-top:8px;"
+                        >
+                    </div>
 
                 </div>
 
-
-                <!-- وقت البداية -->
-
                 <div style="margin-bottom:15px;">
-
-                    <label for="startTime">
-                        وقت البداية
-                    </label>
-
-                    <input
-                        type="time"
-                        id="startTime"
-                        required
-                        style="
-                            width:100%;
-                            box-sizing:border-box;
-                            padding:12px;
-                            margin-top:8px;
-                        "
-                    >
-
-                </div>
-
-
-                <!-- وقت النهاية -->
-
-                <div style="margin-bottom:15px;">
-
-                    <label for="endTime">
-                        وقت النهاية
-                    </label>
-
-                    <input
-                        type="time"
-                        id="endTime"
-                        required
-                        style="
-                            width:100%;
-                            box-sizing:border-box;
-                            padding:12px;
-                            margin-top:8px;
-                        "
-                    >
-
-                </div>
-
-
-                <!-- القاعة -->
-
-                <div style="margin-bottom:15px;">
-
-                    <label for="hall">
-                        القاعة
-                    </label>
+                    <label for="hall">القاعة</label>
 
                     <input
                         type="text"
                         id="hall"
                         placeholder="مثال: قاعة 3"
-                        style="
-                            width:100%;
-                            box-sizing:border-box;
-                            padding:12px;
-                            margin-top:8px;
-                        "
+                        style="width:100%; box-sizing:border-box; padding:12px; margin-top:8px;"
                     >
-
                 </div>
-
 
                 <button
                     type="submit"
-                    style="
-                        width:100%;
-                        padding:12px;
-                    "
+                    style="width:100%; padding:12px;"
                 >
                     ➕ إضافة المحاضرة
                 </button>
 
             </form>
 
-
             <p
                 id="lectureMessage"
-                style="
-                    text-align:center;
-                    margin-top:15px;
-                "
+                style="text-align:center; margin-top:15px;"
             ></p>
 
         </section>
 
-
-        <!-- قائمة المحاضرات -->
-
         <section class="dashboard-section">
 
-            <h2>
-                📚 محاضراتي
-            </h2>
+            <div class="schedule-header">
 
-            <div id="lecturesList">
+                <h2>🗓️ جدول المحاضرات</h2>
 
-                <p>
-                    جاري تحميل المحاضرات...
-                </p>
+                <div class="week-controls">
+
+                    <button
+                        type="button"
+                        id="prevWeekBtn"
+                    >
+                        ◀ الأسبوع السابق
+                    </button>
+
+                    <button
+                        type="button"
+                        id="todayBtn"
+                    >
+                        اليوم
+                    </button>
+
+                    <button
+                        type="button"
+                        id="nextWeekBtn"
+                    >
+                        الأسبوع التالي ▶
+                    </button>
+
+                </div>
+
+            </div>
+
+            <div
+                id="weekTitle"
+                class="week-title"
+            ></div>
+
+            <div class="schedule-wrapper">
+
+                <table class="schedule-table">
+
+                    <thead>
+                        <tr>
+
+                            <th class="time-column">
+                                الوقت
+                            </th>
+
+                            <th>
+                                السبت
+                                <div class="day-date" id="date-6"></div>
+                            </th>
+
+                            <th>
+                                الأحد
+                                <div class="day-date" id="date-0"></div>
+                            </th>
+
+                            <th>
+                                الاثنين
+                                <div class="day-date" id="date-1"></div>
+                            </th>
+
+                            <th>
+                                الثلاثاء
+                                <div class="day-date" id="date-2"></div>
+                            </th>
+
+                            <th>
+                                الأربعاء
+                                <div class="day-date" id="date-3"></div>
+                            </th>
+
+                            <th>
+                                الخميس
+                                <div class="day-date" id="date-4"></div>
+                            </th>
+
+                            <th>
+                                الجمعة
+                                <div class="day-date" id="date-5"></div>
+                            </th>
+
+                        </tr>
+                    </thead>
+
+                    <tbody id="scheduleBody">
+                    </tbody>
+
+                </table>
 
             </div>
 
         </section>
 
     </main>
-
 
     <script src="lectures.js"></script>
 
