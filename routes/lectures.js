@@ -1,14 +1,9 @@
-
 const express = require("express");
 const router = express.Router();
 
 const db = require("../db");
 const authMiddleware = require("../middleware/auth");
 
-
-// ============================================
-// التحقق من صلاحية الأدمن
-// ============================================
 function adminOnly(req, res, next) {
     if (!req.user || req.user.role !== "admin") {
         return res.status(403).json({
@@ -20,10 +15,10 @@ function adminOnly(req, res, next) {
 }
 
 
-// ============================================
-// عرض محاضرات الطالب الحالي
-// GET /lectures
-// ============================================
+/* =========================
+   محاضرات الطالب
+========================= */
+
 router.get("/", authMiddleware, async (req, res) => {
     try {
         const studentId = req.user.id;
@@ -32,19 +27,22 @@ router.get("/", authMiddleware, async (req, res) => {
             `SELECT
                 lectures.id,
                 lectures.student_id,
+                lectures.subject_id,
                 lectures.title,
                 lectures.lecture_date,
                 lectures.start_time,
                 lectures.end_time,
                 lectures.hall,
-                lectures.subject_id,
+                lectures.instructor,
                 subjects.name AS subject_name,
                 subjects.code AS subject_code
              FROM public.lectures
              LEFT JOIN public.subjects
                 ON lectures.subject_id = subjects.id
              WHERE lectures.student_id = $1
-             ORDER BY lectures.lecture_date, lectures.start_time`,
+             ORDER BY
+                lectures.lecture_date ASC,
+                lectures.start_time ASC`,
             [studentId]
         );
 
@@ -60,22 +58,23 @@ router.get("/", authMiddleware, async (req, res) => {
 });
 
 
-// ============================================
-// عرض جميع المحاضرات للأدمن
-// GET /lectures/admin/all
-// ============================================
+/* =========================
+   محاضرات الأدمن
+========================= */
+
 router.get("/admin/all", authMiddleware, adminOnly, async (req, res) => {
     try {
         const result = await db.query(
             `SELECT
                 lectures.id,
                 lectures.student_id,
+                lectures.subject_id,
                 lectures.title,
                 lectures.lecture_date,
                 lectures.start_time,
                 lectures.end_time,
                 lectures.hall,
-                lectures.subject_id,
+                lectures.instructor,
                 subjects.name AS subject_name,
                 subjects.code AS subject_code,
                 students.name AS student_name,
@@ -86,9 +85,8 @@ router.get("/admin/all", authMiddleware, adminOnly, async (req, res) => {
              LEFT JOIN public.students
                 ON lectures.student_id = students.id
              ORDER BY
-                students.name,
-                lectures.lecture_date,
-                lectures.start_time`
+                lectures.lecture_date ASC,
+                lectures.start_time ASC`
         );
 
         res.json(result.rows);
@@ -103,10 +101,10 @@ router.get("/admin/all", authMiddleware, adminOnly, async (req, res) => {
 });
 
 
-// ============================================
-// المحاضرة القادمة للطالب الحالي
-// GET /lectures/next
-// ============================================
+/* =========================
+   المحاضرة القادمة
+========================= */
+
 router.get("/next", authMiddleware, async (req, res) => {
     try {
         const studentId = req.user.id;
@@ -114,12 +112,13 @@ router.get("/next", authMiddleware, async (req, res) => {
         const result = await db.query(
             `SELECT
                 lectures.id,
+                lectures.student_id,
+                lectures.subject_id,
                 lectures.title,
                 lectures.lecture_date,
                 lectures.start_time,
                 lectures.end_time,
                 lectures.hall,
-                lectures.subject_id,
                 subjects.name AS subject_name,
                 subjects.code AS subject_code
              FROM public.lectures
@@ -127,11 +126,15 @@ router.get("/next", authMiddleware, async (req, res) => {
                 ON lectures.subject_id = subjects.id
              WHERE lectures.student_id = $1
              AND (
-                lectures.lecture_date + lectures.start_time
-             ) >= NOW()
+                 lectures.lecture_date > CURRENT_DATE
+                 OR (
+                     lectures.lecture_date = CURRENT_DATE
+                     AND lectures.start_time >= CURRENT_TIME
+                 )
+             )
              ORDER BY
-                lectures.lecture_date,
-                lectures.start_time
+                lectures.lecture_date ASC,
+                lectures.start_time ASC
              LIMIT 1`,
             [studentId]
         );
@@ -152,10 +155,10 @@ router.get("/next", authMiddleware, async (req, res) => {
 });
 
 
-// ============================================
-// عرض محاضرة واحدة للطالب الحالي
-// GET /lectures/:id
-// ============================================
+/* =========================
+   محاضرة واحدة للطالب
+========================= */
+
 router.get("/:id", authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
@@ -164,12 +167,14 @@ router.get("/:id", authMiddleware, async (req, res) => {
         const result = await db.query(
             `SELECT
                 lectures.id,
+                lectures.student_id,
+                lectures.subject_id,
                 lectures.title,
                 lectures.lecture_date,
                 lectures.start_time,
                 lectures.end_time,
                 lectures.hall,
-                lectures.subject_id,
+                lectures.instructor,
                 subjects.name AS subject_name,
                 subjects.code AS subject_code
              FROM public.lectures
@@ -182,7 +187,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
 
         if (result.rows.length === 0) {
             return res.status(404).json({
-                error: "المحاضرة غير موجودة أو لا تخص حسابك"
+                error: "المحاضرة غير موجودة في حسابك"
             });
         }
 
@@ -198,72 +203,99 @@ router.get("/:id", authMiddleware, async (req, res) => {
 });
 
 
-// ============================================
-// إضافة محاضرة للطالب الحالي
-// POST /lectures
-// ============================================
+/* =========================
+   إضافة محاضرة للطالب
+========================= */
+
 router.post("/", authMiddleware, async (req, res) => {
     try {
+        const studentId = req.user.id;
+
         const {
             subject_id,
             title,
             lecture_date,
             start_time,
             end_time,
-            hall
+            hall,
+            instructor
         } = req.body;
-
-        const studentId = req.user.id;
 
         if (
             !subject_id ||
             !title ||
             !lecture_date ||
             !start_time ||
-            !end_time ||
-            !hall
+            !end_time
         ) {
             return res.status(400).json({
-                error: "جميع بيانات المحاضرة مطلوبة"
+                error: "المادة واسم المحاضرة والتاريخ ووقت البداية والنهاية مطلوبة"
             });
         }
 
-        const enrollment = await db.query(
-            `SELECT id
-             FROM public.enrollments
-             WHERE student_id = $1
-             AND subject_id = $2
-             AND status = 'active'`,
-            [studentId, subject_id]
+        const subject = await db.query(
+            `SELECT
+                id,
+                name,
+                code
+             FROM public.subjects
+             WHERE id = $1
+             AND student_id = $2`,
+            [subject_id, studentId]
         );
 
-        if (enrollment.rows.length === 0) {
+        if (subject.rows.length === 0) {
             return res.status(403).json({
-                error: "لا يمكنك إضافة محاضرة لمادة غير مسجل فيها"
+                error: "لا يمكنك إضافة محاضرة لمادة ليست ضمن موادك"
             });
         }
 
         const result = await db.query(
             `INSERT INTO public.lectures
-            (
+                (
+                    student_id,
+                    subject_id,
+                    title,
+                    lecture_date,
+                    start_time,
+                    end_time,
+                    hall,
+                    instructor,
+                    subject_name
+                )
+             VALUES
+                (
+                    $1,
+                    $2,
+                    $3,
+                    $4,
+                    $5,
+                    $6,
+                    $7,
+                    $8,
+                    $9
+                )
+             RETURNING
+                id,
                 student_id,
                 subject_id,
                 title,
                 lecture_date,
                 start_time,
                 end_time,
-                hall
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING *`,
+                hall,
+                instructor,
+                subject_name`,
             [
                 studentId,
                 subject_id,
-                title,
+                String(title).trim(),
                 lecture_date,
                 start_time,
                 end_time,
-                hall
+                hall ? String(hall).trim() : null,
+                instructor ? String(instructor).trim() : null,
+                subject.rows[0].name
             ]
         );
 
@@ -282,10 +314,10 @@ router.post("/", authMiddleware, async (req, res) => {
 });
 
 
-// ============================================
-// إضافة محاضرة للأدمن لأي طالب
-// POST /lectures/admin
-// ============================================
+/* =========================
+   إضافة محاضرة من الأدمن
+========================= */
+
 router.post("/admin", authMiddleware, adminOnly, async (req, res) => {
     try {
         const {
@@ -295,35 +327,25 @@ router.post("/admin", authMiddleware, adminOnly, async (req, res) => {
             lecture_date,
             start_time,
             end_time,
-            hall
+            hall,
+            instructor
         } = req.body;
 
-        if (!student_id) {
-            return res.status(400).json({
-                error: "رقم الطالب مطلوب"
-            });
-        }
-
-        if (!subject_id) {
-            return res.status(400).json({
-                error: "رقم المادة مطلوب"
-            });
-        }
-
         if (
+            !student_id ||
+            !subject_id ||
             !title ||
             !lecture_date ||
             !start_time ||
-            !end_time ||
-            !hall
+            !end_time
         ) {
             return res.status(400).json({
-                error: "جميع بيانات المحاضرة مطلوبة"
+                error: "بيانات المحاضرة كاملة مطلوبة"
             });
         }
 
         const student = await db.query(
-            `SELECT id, name, student_id
+            `SELECT id
              FROM public.students
              WHERE id = $1`,
             [student_id]
@@ -348,47 +370,37 @@ router.post("/admin", authMiddleware, adminOnly, async (req, res) => {
             });
         }
 
-        const enrollment = await db.query(
-            `SELECT id
-             FROM public.enrollments
-             WHERE student_id = $1
-             AND subject_id = $2
-             AND status = 'active'`,
-            [student_id, subject_id]
-        );
-
-        if (enrollment.rows.length === 0) {
-            return res.status(403).json({
-                error: "الطالب غير مسجل في هذه المادة"
-            });
-        }
-
         const result = await db.query(
             `INSERT INTO public.lectures
-            (
-                student_id,
-                subject_id,
-                title,
-                lecture_date,
-                start_time,
-                end_time,
-                hall
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING *`,
+                (
+                    student_id,
+                    subject_id,
+                    title,
+                    lecture_date,
+                    start_time,
+                    end_time,
+                    hall,
+                    instructor,
+                    subject_name
+                )
+             VALUES
+                ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+             RETURNING *`,
             [
                 student_id,
                 subject_id,
-                title,
+                String(title).trim(),
                 lecture_date,
                 start_time,
                 end_time,
-                hall
+                hall ? String(hall).trim() : null,
+                instructor ? String(instructor).trim() : null,
+                subject.rows[0].name
             ]
         );
 
         res.status(201).json({
-            message: "تمت إضافة المحاضرة للطالب بنجاح",
+            message: "تمت إضافة المحاضرة بنجاح",
             lecture: result.rows[0]
         });
 
@@ -402,13 +414,14 @@ router.post("/admin", authMiddleware, adminOnly, async (req, res) => {
 });
 
 
-// ============================================
-// تعديل محاضرة الطالب الحالي
-// PUT /lectures/:id
-// ============================================
+/* =========================
+   تعديل محاضرة الطالب
+========================= */
+
 router.put("/:id", authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
+        const studentId = req.user.id;
 
         const {
             subject_id,
@@ -416,36 +429,33 @@ router.put("/:id", authMiddleware, async (req, res) => {
             lecture_date,
             start_time,
             end_time,
-            hall
+            hall,
+            instructor
         } = req.body;
-
-        const studentId = req.user.id;
 
         if (
             !subject_id ||
             !title ||
             !lecture_date ||
             !start_time ||
-            !end_time ||
-            !hall
+            !end_time
         ) {
             return res.status(400).json({
-                error: "جميع بيانات المحاضرة مطلوبة"
+                error: "بيانات المحاضرة كاملة مطلوبة"
             });
         }
 
-        const enrollment = await db.query(
-            `SELECT id
-             FROM public.enrollments
-             WHERE student_id = $1
-             AND subject_id = $2
-             AND status = 'active'`,
-            [studentId, subject_id]
+        const subject = await db.query(
+            `SELECT id, name, code
+             FROM public.subjects
+             WHERE id = $1
+             AND student_id = $2`,
+            [subject_id, studentId]
         );
 
-        if (enrollment.rows.length === 0) {
+        if (subject.rows.length === 0) {
             return res.status(403).json({
-                error: "لا يمكنك ربط المحاضرة بمادة غير مسجل فيها"
+                error: "لا يمكنك ربط المحاضرة بمادة ليست ضمن موادك"
             });
         }
 
@@ -453,21 +463,25 @@ router.put("/:id", authMiddleware, async (req, res) => {
             `UPDATE public.lectures
              SET
                 subject_id = $1,
-                title = $2,
-                lecture_date = $3,
-                start_time = $4,
-                end_time = $5,
-                hall = $6
-             WHERE id = $7
-             AND student_id = $8
+                subject_name = $2,
+                title = $3,
+                lecture_date = $4,
+                start_time = $5,
+                end_time = $6,
+                hall = $7,
+                instructor = $8
+             WHERE id = $9
+             AND student_id = $10
              RETURNING *`,
             [
                 subject_id,
-                title,
+                subject.rows[0].name,
+                String(title).trim(),
                 lecture_date,
                 start_time,
                 end_time,
-                hall,
+                hall ? String(hall).trim() : null,
+                instructor ? String(instructor).trim() : null,
                 id,
                 studentId
             ]
@@ -475,7 +489,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
 
         if (result.rows.length === 0) {
             return res.status(404).json({
-                error: "المحاضرة غير موجودة أو لا تخص حسابك"
+                error: "المحاضرة غير موجودة في حسابك"
             });
         }
 
@@ -494,10 +508,10 @@ router.put("/:id", authMiddleware, async (req, res) => {
 });
 
 
-// ============================================
-// تعديل محاضرة للأدمن
-// PUT /lectures/admin/:id
-// ============================================
+/* =========================
+   تعديل محاضرة من الأدمن
+========================= */
+
 router.put("/admin/:id", authMiddleware, adminOnly, async (req, res) => {
     try {
         const { id } = req.params;
@@ -509,48 +523,25 @@ router.put("/admin/:id", authMiddleware, adminOnly, async (req, res) => {
             lecture_date,
             start_time,
             end_time,
-            hall
+            hall,
+            instructor
         } = req.body;
 
-        if (!student_id) {
-            return res.status(400).json({
-                error: "رقم الطالب مطلوب"
-            });
-        }
-
-        if (!subject_id) {
-            return res.status(400).json({
-                error: "رقم المادة مطلوب"
-            });
-        }
-
         if (
+            !student_id ||
+            !subject_id ||
             !title ||
             !lecture_date ||
             !start_time ||
-            !end_time ||
-            !hall
+            !end_time
         ) {
             return res.status(400).json({
-                error: "جميع بيانات المحاضرة مطلوبة"
-            });
-        }
-
-        const student = await db.query(
-            `SELECT id
-             FROM public.students
-             WHERE id = $1`,
-            [student_id]
-        );
-
-        if (student.rows.length === 0) {
-            return res.status(404).json({
-                error: "الطالب غير موجود"
+                error: "بيانات المحاضرة كاملة مطلوبة"
             });
         }
 
         const subject = await db.query(
-            `SELECT id
+            `SELECT id, name
              FROM public.subjects
              WHERE id = $1`,
             [subject_id]
@@ -562,41 +553,30 @@ router.put("/admin/:id", authMiddleware, adminOnly, async (req, res) => {
             });
         }
 
-        const enrollment = await db.query(
-            `SELECT id
-             FROM public.enrollments
-             WHERE student_id = $1
-             AND subject_id = $2
-             AND status = 'active'`,
-            [student_id, subject_id]
-        );
-
-        if (enrollment.rows.length === 0) {
-            return res.status(403).json({
-                error: "الطالب غير مسجل في هذه المادة"
-            });
-        }
-
         const result = await db.query(
             `UPDATE public.lectures
              SET
                 student_id = $1,
                 subject_id = $2,
-                title = $3,
-                lecture_date = $4,
-                start_time = $5,
-                end_time = $6,
-                hall = $7
-             WHERE id = $8
+                subject_name = $3,
+                title = $4,
+                lecture_date = $5,
+                start_time = $6,
+                end_time = $7,
+                hall = $8,
+                instructor = $9
+             WHERE id = $10
              RETURNING *`,
             [
                 student_id,
                 subject_id,
-                title,
+                subject.rows[0].name,
+                String(title).trim(),
                 lecture_date,
                 start_time,
                 end_time,
-                hall,
+                hall ? String(hall).trim() : null,
+                instructor ? String(instructor).trim() : null,
                 id
             ]
         );
@@ -622,10 +602,10 @@ router.put("/admin/:id", authMiddleware, adminOnly, async (req, res) => {
 });
 
 
-// ============================================
-// حذف محاضرة الطالب الحالي
-// DELETE /lectures/:id
-// ============================================
+/* =========================
+   حذف محاضرة الطالب
+========================= */
+
 router.delete("/:id", authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
@@ -641,7 +621,7 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 
         if (result.rows.length === 0) {
             return res.status(404).json({
-                error: "المحاضرة غير موجودة أو لا تخص حسابك"
+                error: "المحاضرة غير موجودة في حسابك"
             });
         }
 
@@ -660,10 +640,10 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 });
 
 
-// ============================================
-// حذف محاضرة للأدمن
-// DELETE /lectures/admin/:id
-// ============================================
+/* =========================
+   حذف محاضرة من الأدمن
+========================= */
+
 router.delete("/admin/:id", authMiddleware, adminOnly, async (req, res) => {
     try {
         const { id } = req.params;
