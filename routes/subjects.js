@@ -4,15 +4,12 @@ const router = express.Router();
 const db = require("../db");
 const authMiddleware = require("../middleware/auth");
 
-
 // ============================================
 // التحقق من صلاحية المدير
 // ============================================
 
 function adminOnly(req, res, next) {
-
     if (!req.user || req.user.role !== "admin") {
-
         return res.status(403).json({
             error: "ليس لديك صلاحية الإدارة"
         });
@@ -21,214 +18,232 @@ function adminOnly(req, res, next) {
     next();
 }
 
-
 // =====================================================
 // ADMIN ROUTES
-// يجب أن تكون قبل /:id
 // =====================================================
-
 
 // ============================================
 // عرض جميع المواد للإدارة
 // GET /subjects/admin/all
 // ============================================
 
-router.get(
-    "/admin/all",
-    authMiddleware,
-    adminOnly,
-    async (req, res) => {
+router.get("/admin/all", authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const result = await db.query(
+            `SELECT
+                subjects.id,
+                subjects.name,
+                subjects.code,
+                subjects.created_at,
+                COUNT(
+                    CASE
+                        WHEN enrollments.status = 'active'
+                        THEN enrollments.id
+                    END
+                ) AS students_count
+             FROM public.subjects
+             LEFT JOIN public.enrollments
+                ON enrollments.subject_id = subjects.id
+             GROUP BY
+                subjects.id,
+                subjects.name,
+                subjects.code,
+                subjects.created_at
+             ORDER BY subjects.name`
+        );
 
-        try {
+        res.json(result.rows);
 
-            const result = await db.query(
-                `SELECT
-                    subjects.id,
-                    subjects.name,
-                    subjects.code,
-                    subjects.created_at,
-                    COUNT(
-                        CASE
-                            WHEN enrollments.status = 'active'
-                            THEN enrollments.id
-                        END
-                    ) AS students_count
-                 FROM public.subjects
-                 LEFT JOIN public.enrollments
-                    ON enrollments.subject_id = subjects.id
-                 GROUP BY
-                    subjects.id,
-                    subjects.name,
-                    subjects.code,
-                    subjects.created_at
-                 ORDER BY subjects.name`
-            );
+    } catch (error) {
+        console.error("GET /subjects/admin/all error:", error);
 
-            res.json(result.rows);
-
-        } catch (error) {
-
-            console.error(
-                "GET /subjects/admin/all error:",
-                error
-            );
-
-            res.status(500).json({
-                error: "Database error"
-            });
-        }
+        res.status(500).json({
+            error: "Database error"
+        });
     }
-);
-
+});
 
 // ============================================
 // إضافة مادة من الإدارة
 // POST /subjects/admin
 // ============================================
 
-router.post(
-    "/admin",
-    authMiddleware,
-    adminOnly,
-    async (req, res) => {
+router.post("/admin", authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const { name, code } = req.body;
 
-        try {
-
-            const {
-                name,
-                code
-            } = req.body;
-
-            if (!name || !code) {
-
-                return res.status(400).json({
-                    error: "اسم المادة وكود المادة مطلوبان"
-                });
-            }
-
-            const cleanName = String(name).trim();
-            const cleanCode = String(code).trim();
-
-            if (!cleanName || !cleanCode) {
-
-                return res.status(400).json({
-                    error: "اسم المادة وكود المادة مطلوبان"
-                });
-            }
-
-            const existing = await db.query(
-                `SELECT id, name, code
-                 FROM public.subjects
-                 WHERE code = $1`,
-                [cleanCode]
-            );
-
-            if (existing.rows.length > 0) {
-
-                return res.status(400).json({
-                    error: "رمز المادة موجود بالفعل"
-                });
-            }
-
-            const result = await db.query(
-                `INSERT INTO public.subjects
-                (
-                    name,
-                    code
-                )
-                VALUES ($1, $2)
-                RETURNING
-                    id,
-                    name,
-                    code,
-                    created_at`,
-                [
-                    cleanName,
-                    cleanCode
-                ]
-            );
-
-            res.status(201).json({
-                message: "تمت إضافة المادة بنجاح",
-                subject: result.rows[0]
-            });
-
-        } catch (error) {
-
-            console.error(
-                "POST /subjects/admin error:",
-                error
-            );
-
-            res.status(500).json({
-                error: "Database error"
+        if (!name || !code) {
+            return res.status(400).json({
+                error: "اسم المادة وكود المادة مطلوبان"
             });
         }
-    }
-);
 
+        const cleanName = String(name).trim();
+        const cleanCode = String(code).trim();
+
+        if (!cleanName || !cleanCode) {
+            return res.status(400).json({
+                error: "اسم المادة وكود المادة مطلوبان"
+            });
+        }
+
+        const existing = await db.query(
+            `SELECT id
+             FROM public.subjects
+             WHERE code = $1`,
+            [cleanCode]
+        );
+
+        if (existing.rows.length > 0) {
+            return res.status(400).json({
+                error: "رمز المادة موجود بالفعل"
+            });
+        }
+
+        const result = await db.query(
+            `INSERT INTO public.subjects
+            (name, code)
+            VALUES ($1, $2)
+            RETURNING id, name, code, created_at`,
+            [cleanName, cleanCode]
+        );
+
+        res.status(201).json({
+            message: "تمت إضافة المادة بنجاح",
+            subject: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error("POST /subjects/admin error:", error);
+
+        res.status(500).json({
+            error: "Database error"
+        });
+    }
+});
 
 // ============================================
 // حذف مادة من الإدارة
 // DELETE /subjects/admin/:id
 // ============================================
 
-router.delete(
-    "/admin/:id",
-    authMiddleware,
-    adminOnly,
-    async (req, res) => {
+router.delete("/admin/:id", authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const { id } = req.params;
 
-        try {
+        const subject = await db.query(
+            `SELECT id
+             FROM public.subjects
+             WHERE id = $1`,
+            [id]
+        );
 
-            const { id } = req.params;
-
-            const subject = await db.query(
-                `SELECT id
-                 FROM public.subjects
-                 WHERE id = $1`,
-                [id]
-            );
-
-            if (subject.rows.length === 0) {
-
-                return res.status(404).json({
-                    error: "المادة غير موجودة"
-                });
-            }
-
-            const result = await db.query(
-                `DELETE FROM public.subjects
-                 WHERE id = $1
-                 RETURNING id, name, code`,
-                [id]
-            );
-
-            res.json({
-                message: "تم حذف المادة بنجاح",
-                subject: result.rows[0]
-            });
-
-        } catch (error) {
-
-            console.error(
-                "DELETE /subjects/admin/:id error:",
-                error
-            );
-
-            res.status(500).json({
-                error:
-                    "لا يمكن حذف المادة لأنها مرتبطة ببيانات أخرى أو حدث خطأ في قاعدة البيانات"
+        if (subject.rows.length === 0) {
+            return res.status(404).json({
+                error: "المادة غير موجودة"
             });
         }
-    }
-);
 
+        const result = await db.query(
+            `DELETE FROM public.subjects
+             WHERE id = $1
+             RETURNING id, name, code`,
+            [id]
+        );
+
+        res.json({
+            message: "تم حذف المادة بنجاح",
+            subject: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error("DELETE /subjects/admin/:id error:", error);
+
+        res.status(500).json({
+            error:
+                "لا يمكن حذف المادة لأنها مرتبطة ببيانات أخرى أو حدث خطأ في قاعدة البيانات"
+        });
+    }
+});
+
+// ============================================
+// تعديل مادة من الإدارة
+// PUT /subjects/admin/:id
+// ============================================
+
+router.put("/admin/:id", authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, code } = req.body;
+
+        if (!name || !code) {
+            return res.status(400).json({
+                error: "اسم المادة وكود المادة مطلوبان"
+            });
+        }
+
+        const cleanName = String(name).trim();
+        const cleanCode = String(code).trim();
+
+        if (!cleanName || !cleanCode) {
+            return res.status(400).json({
+                error: "اسم المادة وكود المادة مطلوبان"
+            });
+        }
+
+        const subject = await db.query(
+            `SELECT id
+             FROM public.subjects
+             WHERE id = $1`,
+            [id]
+        );
+
+        if (subject.rows.length === 0) {
+            return res.status(404).json({
+                error: "المادة غير موجودة"
+            });
+        }
+
+        const duplicate = await db.query(
+            `SELECT id
+             FROM public.subjects
+             WHERE code = $1
+             AND id <> $2`,
+            [cleanCode, id]
+        );
+
+        if (duplicate.rows.length > 0) {
+            return res.status(400).json({
+                error: "رمز المادة مستخدم لمادة أخرى"
+            });
+        }
+
+        const result = await db.query(
+            `UPDATE public.subjects
+             SET name = $1,
+                 code = $2
+             WHERE id = $3
+             RETURNING id, name, code, created_at`,
+            [cleanName, cleanCode, id]
+        );
+
+        res.json({
+            message: "تم تعديل المادة بنجاح",
+            subject: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error("PUT /subjects/admin/:id error:", error);
+
+        res.status(500).json({
+            error: "Database error"
+        });
+    }
+});
 
 // =====================================================
 // STUDENT ROUTES
 // =====================================================
-
 
 // ============================================
 // عرض مواد الطالب الحالي
@@ -236,9 +251,7 @@ router.delete(
 // ============================================
 
 router.get("/", authMiddleware, async (req, res) => {
-
     try {
-
         const studentId = req.user.id;
 
         const result = await db.query(
@@ -261,11 +274,7 @@ router.get("/", authMiddleware, async (req, res) => {
         res.json(result.rows);
 
     } catch (error) {
-
-        console.error(
-            "GET /subjects error:",
-            error
-        );
+        console.error("GET /subjects error:", error);
 
         res.status(500).json({
             error: "Database error"
@@ -273,16 +282,13 @@ router.get("/", authMiddleware, async (req, res) => {
     }
 });
 
-
 // ============================================
 // عرض مادة واحدة للطالب الحالي
 // GET /subjects/:id
 // ============================================
 
 router.get("/:id", authMiddleware, async (req, res) => {
-
     try {
-
         const { id } = req.params;
         const studentId = req.user.id;
 
@@ -300,14 +306,10 @@ router.get("/:id", authMiddleware, async (req, res) => {
              WHERE subjects.id = $1
              AND enrollments.student_id = $2
              AND enrollments.status = 'active'`,
-            [
-                id,
-                studentId
-            ]
+            [id, studentId]
         );
 
         if (result.rows.length === 0) {
-
             return res.status(404).json({
                 error: "المادة غير موجودة أو غير مسجل فيها"
             });
@@ -316,11 +318,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
         res.json(result.rows[0]);
 
     } catch (error) {
-
-        console.error(
-            "GET /subjects/:id error:",
-            error
-        );
+        console.error("GET /subjects/:id error:", error);
 
         res.status(500).json({
             error: "Database error"
@@ -328,103 +326,46 @@ router.get("/:id", authMiddleware, async (req, res) => {
     }
 });
 
-
 // ============================================
-// إضافة مادة للطالب الحالي
+// تسجيل الطالب في مادة موجودة
 // POST /subjects
 // ============================================
 
 router.post("/", authMiddleware, async (req, res) => {
-
     try {
-
-        const {
-            name,
-            code
-        } = req.body;
-
+        const { subject_id } = req.body;
         const studentId = req.user.id;
 
-        if (!name || !code) {
-
+        if (!subject_id) {
             return res.status(400).json({
-                error: "اسم المادة وكود المادة مطلوبان"
+                error: "رقم المادة مطلوب"
             });
         }
 
-        const cleanName = String(name).trim();
-        const cleanCode = String(code).trim();
-
-        if (!cleanName || !cleanCode) {
-
-            return res.status(400).json({
-                error: "اسم المادة وكود المادة مطلوبان"
-            });
-        }
-
-        const student = await db.query(
-            `SELECT id
-             FROM public.students
-             WHERE id = $1`,
-            [studentId]
-        );
-
-        if (student.rows.length === 0) {
-
-            return res.status(404).json({
-                error: "الطالب غير موجود"
-            });
-        }
-
-        let subject = await db.query(
+        const subject = await db.query(
             `SELECT id, name, code
              FROM public.subjects
-             WHERE code = $1`,
-            [cleanCode]
+             WHERE id = $1`,
+            [subject_id]
         );
 
-        let subjectId;
-
-        if (subject.rows.length > 0) {
-
-            subjectId = subject.rows[0].id;
-
-        } else {
-
-            const newSubject = await db.query(
-                `INSERT INTO public.subjects
-                (
-                    name,
-                    code
-                )
-                VALUES ($1, $2)
-                RETURNING id, name, code`,
-                [
-                    cleanName,
-                    cleanCode
-                ]
-            );
-
-            subjectId = newSubject.rows[0].id;
+        if (subject.rows.length === 0) {
+            return res.status(404).json({
+                error: "المادة غير موجودة"
+            });
         }
 
-        const existingEnrollment = await db.query(
+        const existing = await db.query(
             `SELECT id, status
              FROM public.enrollments
              WHERE student_id = $1
              AND subject_id = $2`,
-            [
-                studentId,
-                subjectId
-            ]
+            [studentId, subject_id]
         );
 
-        if (existingEnrollment.rows.length > 0) {
+        if (existing.rows.length > 0) {
 
-            if (
-                existingEnrollment.rows[0].status === "active"
-            ) {
-
+            if (existing.rows[0].status === "active") {
                 return res.status(400).json({
                     error: "أنت مسجل في هذه المادة بالفعل"
                 });
@@ -435,41 +376,30 @@ router.post("/", authMiddleware, async (req, res) => {
                  SET status = 'active'
                  WHERE id = $1
                  RETURNING *`,
-                [existingEnrollment.rows[0].id]
+                [existing.rows[0].id]
             );
 
             return res.status(201).json({
-                message: "تمت إعادة إضافة المادة",
+                message: "تمت إعادة تسجيل المادة بنجاح",
                 enrollment: restored.rows[0]
             });
         }
 
         const enrollment = await db.query(
             `INSERT INTO public.enrollments
-            (
-                student_id,
-                subject_id,
-                status
-            )
+            (student_id, subject_id, status)
             VALUES ($1, $2, 'active')
             RETURNING *`,
-            [
-                studentId,
-                subjectId
-            ]
+            [studentId, subject_id]
         );
 
         res.status(201).json({
-            message: "تمت إضافة المادة بنجاح",
+            message: "تم التسجيل في المادة بنجاح",
             enrollment: enrollment.rows[0]
         });
 
     } catch (error) {
-
-        console.error(
-            "POST /subjects error:",
-            error
-        );
+        console.error("POST /subjects error:", error);
 
         res.status(500).json({
             error: "Database error"
@@ -477,90 +407,16 @@ router.post("/", authMiddleware, async (req, res) => {
     }
 });
 
-
 // ============================================
-// تعديل مادة الطالب الحالي
-// PUT /subjects/:id
+// تعديل المادة للطالب
+// ممنوع للطالب
 // ============================================
 
 router.put("/:id", authMiddleware, async (req, res) => {
-
-    try {
-
-        const { id } = req.params;
-
-        const {
-            name,
-            code
-        } = req.body;
-
-        const studentId = req.user.id;
-
-        if (!name || !code) {
-
-            return res.status(400).json({
-                error: "اسم المادة وكود المادة مطلوبان"
-            });
-        }
-
-        const enrollment = await db.query(
-            `SELECT enrollments.id
-             FROM public.enrollments
-             WHERE enrollments.subject_id = $1
-             AND enrollments.student_id = $2
-             AND enrollments.status = 'active'`,
-            [
-                id,
-                studentId
-            ]
-        );
-
-        if (enrollment.rows.length === 0) {
-
-            return res.status(404).json({
-                error: "المادة غير موجودة أو غير مسجل فيها"
-            });
-        }
-
-        const result = await db.query(
-            `UPDATE public.subjects
-             SET
-                name = $1,
-                code = $2
-             WHERE id = $3
-             RETURNING id, name, code`,
-            [
-                name,
-                code,
-                id
-            ]
-        );
-
-        if (result.rows.length === 0) {
-
-            return res.status(404).json({
-                error: "المادة غير موجودة"
-            });
-        }
-
-        res.json({
-            message: "تم تعديل المادة بنجاح",
-            subject: result.rows[0]
-        });
-
-    } catch (error) {
-
-        console.error(
-            "PUT /subjects/:id error:",
-            error
-        );
-
-        res.status(500).json({
-            error: "Database error"
-        });
-    }
+    return res.status(403).json({
+        error: "تعديل بيانات المادة متاح للمدير فقط"
+    });
 });
-
 
 // ============================================
 // حذف المادة من مواد الطالب
@@ -568,9 +424,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
 // ============================================
 
 router.delete("/:id", authMiddleware, async (req, res) => {
-
     try {
-
         const { id } = req.params;
         const studentId = req.user.id;
 
@@ -579,15 +433,12 @@ router.delete("/:id", authMiddleware, async (req, res) => {
              SET status = 'inactive'
              WHERE subject_id = $1
              AND student_id = $2
+             AND status = 'active'
              RETURNING *`,
-            [
-                id,
-                studentId
-            ]
+            [id, studentId]
         );
 
         if (result.rows.length === 0) {
-
             return res.status(404).json({
                 error: "المادة غير موجودة في موادك"
             });
@@ -599,17 +450,12 @@ router.delete("/:id", authMiddleware, async (req, res) => {
         });
 
     } catch (error) {
-
-        console.error(
-            "DELETE /subjects/:id error:",
-            error
-        );
+        console.error("DELETE /subjects/:id error:", error);
 
         res.status(500).json({
             error: "Database error"
         });
     }
 });
-
 
 module.exports = router;
