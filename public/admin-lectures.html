@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 
@@ -10,9 +11,8 @@
     <link rel="stylesheet" href="style.css">
 
     <style>
-
         .admin-container {
-            max-width: 950px;
+            max-width: 1000px;
             margin: 30px auto;
             padding: 20px;
         }
@@ -58,6 +58,10 @@
             font-weight: bold;
             background: #2563eb;
             color: white;
+        }
+
+        .add-button:hover {
+            opacity: 0.9;
         }
 
         .lectures-list {
@@ -125,8 +129,21 @@
             padding: 20px;
         }
 
-        @media (max-width: 600px) {
+        .loading {
+            text-align: center;
+            opacity: 0.7;
+            padding: 20px;
+        }
 
+        .logout-button {
+            margin-right: 15px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        @media (max-width: 600px) {
             .lecture-item {
                 flex-direction: column;
                 align-items: stretch;
@@ -135,15 +152,12 @@
             .delete-button {
                 width: 100%;
             }
-
         }
-
     </style>
 </head>
 
 
 <body>
-
 
 <header class="topbar">
 
@@ -158,11 +172,12 @@
 </header>
 
 
-
 <main class="admin-container">
 
 
+    <!-- ========================================= -->
     <!-- إضافة محاضرة -->
+    <!-- ========================================= -->
 
     <div class="admin-card dashboard-card">
 
@@ -171,11 +186,33 @@
         </h1>
 
         <p>
-            من هنا تقدري تضيفي جدول المحاضرات ومواعيدها.
+            من هنا يقدر الأدمن يضيف محاضرات للطلاب المسجلين في المواد.
         </p>
 
 
         <form id="lectureForm">
+
+
+            <!-- الطالب -->
+
+            <div class="form-group">
+
+                <label for="studentId">
+                    👨‍🎓 الطالب
+                </label>
+
+                <select
+                    id="studentId"
+                    required
+                >
+
+                    <option value="">
+                        جاري تحميل الطلاب...
+                    </option>
+
+                </select>
+
+            </div>
 
 
             <!-- المادة -->
@@ -200,7 +237,6 @@
             </div>
 
 
-
             <!-- عنوان المحاضرة -->
 
             <div class="form-group">
@@ -217,7 +253,6 @@
                 >
 
             </div>
-
 
 
             <!-- التاريخ -->
@@ -237,7 +272,6 @@
             </div>
 
 
-
             <!-- وقت البداية -->
 
             <div class="form-group">
@@ -255,7 +289,6 @@
             </div>
 
 
-
             <!-- وقت النهاية -->
 
             <div class="form-group">
@@ -271,7 +304,6 @@
                 >
 
             </div>
-
 
 
             <!-- القاعة -->
@@ -292,14 +324,12 @@
             </div>
 
 
-
             <button
                 type="submit"
                 class="add-button"
             >
                 ➕ إضافة المحاضرة
             </button>
-
 
         </form>
 
@@ -313,12 +343,14 @@
 
 
 
+    <!-- ========================================= -->
     <!-- المحاضرات الموجودة -->
+    <!-- ========================================= -->
 
     <div class="admin-card dashboard-card">
 
         <h2>
-            📋 المحاضرات الموجودة
+            📋 جميع المحاضرات
         </h2>
 
 
@@ -327,7 +359,7 @@
             class="lectures-list"
         >
 
-            <p class="empty">
+            <p class="loading">
                 جاري تحميل المحاضرات...
             </p>
 
@@ -339,12 +371,18 @@
 </main>
 
 
-
 <script>
 
 
+// ==========================================
+// العناصر
+// ==========================================
+
 const lectureForm =
     document.getElementById("lectureForm");
+
+const studentId =
+    document.getElementById("studentId");
 
 const subjectId =
     document.getElementById("subjectId");
@@ -371,6 +409,197 @@ const message =
     document.getElementById("message");
 
 
+// ==========================================
+// التوكن
+// ==========================================
+
+const token =
+    localStorage.getItem("token");
+
+
+if (!token) {
+
+    window.location.href = "index.html";
+
+}
+
+
+// ==========================================
+// Headers
+// ==========================================
+
+function authHeaders() {
+
+    return {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+    };
+
+}
+
+
+// ==========================================
+// التحقق من الأدمن
+// ==========================================
+
+async function checkAdmin() {
+
+    try {
+
+        const response =
+            await fetch("/students/me", {
+                headers: {
+                    "Authorization":
+                        `Bearer ${token}`
+                }
+            });
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "جلسة الدخول غير صالحة"
+            );
+
+        }
+
+
+        const student =
+            await response.json();
+
+
+        if (student.role !== "admin") {
+
+            alert(
+                "ليس لديك صلاحية الدخول إلى صفحة الإدارة"
+            );
+
+            window.location.href =
+                "dashboard.html";
+
+            return false;
+        }
+
+
+        return true;
+
+
+    } catch (error) {
+
+        console.error(
+            "Admin verification error:",
+            error
+        );
+
+        localStorage.removeItem("token");
+        localStorage.removeItem("student");
+
+        window.location.href =
+            "index.html";
+
+        return false;
+    }
+
+}
+
+
+// ==========================================
+// تحميل الطلاب
+// ==========================================
+
+async function loadStudents() {
+
+    try {
+
+        const response =
+            await fetch("/students", {
+                headers: {
+                    "Authorization":
+                        `Bearer ${token}`
+                }
+            });
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "فشل تحميل الطلاب"
+            );
+
+        }
+
+
+        studentId.innerHTML = `
+            <option value="">
+                اختاري الطالب
+            </option>
+        `;
+
+
+        if (
+            !Array.isArray(data) ||
+            data.length === 0
+        ) {
+
+            studentId.innerHTML = `
+                <option value="">
+                    مافيش طلاب
+                </option>
+            `;
+
+            return;
+        }
+
+
+        data.forEach(student => {
+
+            const option =
+                document.createElement("option");
+
+
+            option.value =
+                student.id;
+
+
+            const name =
+                student.name ||
+                "بدون اسم";
+
+
+            const number =
+                student.student_id ||
+                "بدون رقم";
+
+
+            option.textContent =
+                `${name} - رقم الطالب: ${number}`;
+
+
+            studentId.appendChild(option);
+
+        });
+
+
+    } catch (error) {
+
+        console.error(error);
+
+
+        studentId.innerHTML = `
+            <option value="">
+                ❌ حدث خطأ في تحميل الطلاب
+            </option>
+        `;
+
+    }
+
+}
+
 
 // ==========================================
 // تحميل المواد
@@ -381,20 +610,29 @@ async function loadSubjects() {
     try {
 
         const response =
-            await fetch("/subjects");
+            await fetch(
+                "/subjects/admin/all",
+                {
+                    headers: {
+                        "Authorization":
+                            `Bearer ${token}`
+                    }
+                }
+            );
+
+
+        const data =
+            await response.json();
 
 
         if (!response.ok) {
 
             throw new Error(
+                data.error ||
                 "فشل تحميل المواد"
             );
 
         }
-
-
-        const subjects =
-            await response.json();
 
 
         subjectId.innerHTML = `
@@ -405,8 +643,8 @@ async function loadSubjects() {
 
 
         if (
-            !Array.isArray(subjects) ||
-            subjects.length === 0
+            !Array.isArray(data) ||
+            data.length === 0
         ) {
 
             subjectId.innerHTML = `
@@ -419,7 +657,7 @@ async function loadSubjects() {
         }
 
 
-        subjects.forEach(subject => {
+        data.forEach(subject => {
 
             const option =
                 document.createElement("option");
@@ -454,38 +692,53 @@ async function loadSubjects() {
 }
 
 
-
 // ==========================================
-// تحميل المحاضرات
+// تحميل جميع المحاضرات
 // ==========================================
 
 async function loadLectures() {
 
     try {
 
+        lecturesList.innerHTML = `
+            <p class="loading">
+                جاري تحميل المحاضرات...
+            </p>
+        `;
+
+
         const response =
-            await fetch("/lectures");
+            await fetch(
+                "/lectures/admin/all",
+                {
+                    headers: {
+                        "Authorization":
+                            `Bearer ${token}`
+                    }
+                }
+            );
+
+
+        const data =
+            await response.json();
 
 
         if (!response.ok) {
 
             throw new Error(
+                data.error ||
                 "فشل تحميل المحاضرات"
             );
 
         }
 
 
-        const lectures =
-            await response.json();
-
-
         lecturesList.innerHTML = "";
 
 
         if (
-            !Array.isArray(lectures) ||
-            lectures.length === 0
+            !Array.isArray(data) ||
+            data.length === 0
         ) {
 
             lecturesList.innerHTML = `
@@ -498,7 +751,7 @@ async function loadLectures() {
         }
 
 
-        lectures.forEach(lecture => {
+        data.forEach(lecture => {
 
             const item =
                 document.createElement("div");
@@ -513,29 +766,39 @@ async function loadLectures() {
                 <div class="lecture-info">
 
                     <h3>
-                        🎓 ${lecture.title}
+                        🎓 ${lecture.title || "بدون عنوان"}
                     </h3>
 
                     <p>
+                        👨‍🎓 الطالب:
+                        ${lecture.student_name || "بدون اسم"}
+                    </p>
+
+                    <p>
+                        🔢 رقم الطالب:
+                        ${lecture.student_number || "غير متوفر"}
+                    </p>
+
+                    <p>
                         📚 المادة:
-                        ${lecture.subject_name}
+                        ${lecture.subject_name || "غير محددة"}
                     </p>
 
                     <p>
                         📅 التاريخ:
-                        ${lecture.lecture_date}
+                        ${lecture.lecture_date || "غير محدد"}
                     </p>
 
                     <p>
                         🕐 الوقت:
-                        ${lecture.start_time}
+                        ${lecture.start_time || "--"}
                         -
-                        ${lecture.end_time}
+                        ${lecture.end_time || "--"}
                     </p>
 
                     <p>
                         🏫 القاعة:
-                        ${lecture.hall}
+                        ${lecture.hall || "غير محددة"}
                     </p>
 
                 </div>
@@ -564,7 +827,7 @@ async function loadLectures() {
 
         lecturesList.innerHTML = `
             <p class="empty">
-                ❌ حدث خطأ في تحميل المحاضرات.
+                ❌ ${error.message}
             </p>
         `;
 
@@ -573,9 +836,8 @@ async function loadLectures() {
 }
 
 
-
 // ==========================================
-// إضافة محاضرة
+// إضافة محاضرة للأدمن
 // ==========================================
 
 lectureForm.addEventListener(
@@ -583,6 +845,28 @@ lectureForm.addEventListener(
     async function(event) {
 
         event.preventDefault();
+
+
+        // التأكد من اختيار الطالب
+
+        if (!studentId.value) {
+
+            message.textContent =
+                "❌ لازم تختاري الطالب.";
+
+            return;
+        }
+
+
+        // التأكد من اختيار المادة
+
+        if (!subjectId.value) {
+
+            message.textContent =
+                "❌ لازم تختاري المادة.";
+
+            return;
+        }
 
 
         // التأكد من الوقت
@@ -606,38 +890,41 @@ lectureForm.addEventListener(
         try {
 
             const response =
-                await fetch("/lectures", {
+                await fetch(
+                    "/lectures/admin",
+                    {
+                        method: "POST",
 
-                    method: "POST",
+                        headers:
+                            authHeaders(),
 
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
+                        body: JSON.stringify({
 
-                    body: JSON.stringify({
+                            student_id:
+                                studentId.value,
 
-                        subject_id:
-                            subjectId.value,
+                            subject_id:
+                                subjectId.value,
 
-                        title:
-                            lectureTitle.value.trim(),
+                            title:
+                                lectureTitle.value.trim(),
 
-                        lecture_date:
-                            lectureDate.value,
+                            lecture_date:
+                                lectureDate.value,
 
-                        start_time:
-                            startTime.value,
+                            start_time:
+                                startTime.value,
 
-                        end_time:
-                            endTime.value,
+                            end_time:
+                                endTime.value,
 
-                        hall:
-                            hall.value.trim()
+                            hall:
+                                hall.value.trim()
 
-                    })
+                        })
 
-                });
+                    }
+                );
 
 
             const data =
@@ -655,13 +942,13 @@ lectureForm.addEventListener(
 
 
             message.textContent =
-                "✅ تمت إضافة المحاضرة بنجاح";
+                "✅ تمت إضافة المحاضرة للطالب بنجاح";
 
 
             lectureForm.reset();
 
 
-            loadLectures();
+            await loadLectures();
 
 
         } catch (error) {
@@ -676,7 +963,6 @@ lectureForm.addEventListener(
 
     }
 );
-
 
 
 // ==========================================
@@ -700,9 +986,14 @@ async function deleteLecture(id) {
 
         const response =
             await fetch(
-                `/lectures/${id}`,
+                `/lectures/admin/${id}`,
                 {
-                    method: "DELETE"
+                    method: "DELETE",
+
+                    headers: {
+                        "Authorization":
+                            `Bearer ${token}`
+                    }
                 }
             );
 
@@ -725,7 +1016,7 @@ async function deleteLecture(id) {
             "✅ تم حذف المحاضرة بنجاح";
 
 
-        loadLectures();
+        await loadLectures();
 
 
     } catch (error) {
@@ -741,18 +1032,34 @@ async function deleteLecture(id) {
 }
 
 
-
 // ==========================================
 // تشغيل الصفحة
 // ==========================================
 
-loadSubjects();
+async function initPage() {
 
-loadLectures();
+    const isAdmin =
+        await checkAdmin();
+
+
+    if (!isAdmin) {
+        return;
+    }
+
+
+    await Promise.all([
+        loadStudents(),
+        loadSubjects(),
+        loadLectures()
+    ]);
+
+}
+
+
+initPage();
 
 
 </script>
-
 
 </body>
 
