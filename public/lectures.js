@@ -1,708 +1,895 @@
-const express = require("express");
-const router = express.Router();
 
-const db = require("../db");
-const authMiddleware = require("../middleware/auth");
+const token = localStorage.getItem("token");
 
-function adminOnly(req, res, next) {
-    if (!req.user || req.user.role !== "admin") {
-        return res.status(403).json({
-            error: "ليس لديك صلاحية الإدارة"
+if (!token) {
+    window.location.href = "index.html";
+}
+
+const lecturesList = document.getElementById("lecturesList");
+const addLectureForm = document.getElementById("addLectureForm");
+const subjectSelect = document.getElementById("subjectId");
+const lectureMessage = document.getElementById("lectureMessage");
+
+
+// ==========================================
+// تحميل المواد الخاصة بالطالب
+// ==========================================
+
+async function loadSubjects() {
+
+    try {
+
+        const response = await fetch("/subjects", {
+            method: "GET",
+
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
         });
-    }
 
-    next();
+        const data = await response.json();
+
+        if (!response.ok) {
+
+            if (response.status === 401) {
+                logout();
+                return;
+            }
+
+            throw new Error(
+                data.error || "حدث خطأ في تحميل المواد"
+            );
+        }
+
+        subjectSelect.innerHTML = `
+            <option value="">
+                اختر المادة
+            </option>
+        `;
+
+
+        if (!data || data.length === 0) {
+
+            subjectSelect.innerHTML = `
+                <option value="">
+                    مافيش مواد عندك
+                </option>
+            `;
+
+            return;
+        }
+
+
+        data.forEach(subject => {
+
+            const option =
+                document.createElement("option");
+
+            option.value = subject.id;
+
+            option.textContent =
+                `${subject.name}${subject.code ? ` - ${subject.code}` : ""}`;
+
+            subjectSelect.appendChild(option);
+
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Subjects error:",
+            error
+        );
+
+        subjectSelect.innerHTML = `
+            <option value="">
+                فشل تحميل المواد
+            </option>
+        `;
+    }
 }
 
 
-// =====================================================
-// STUDENT - GET MY LECTURES
-// =====================================================
+// ==========================================
+// تحميل محاضرات الطالب
+// ==========================================
 
-router.get("/", authMiddleware, async (req, res) => {
+async function loadLectures() {
+
     try {
-        const studentId = req.user.id;
 
-        const result = await db.query(
-            `SELECT
-                lectures.id,
-                lectures.student_id,
-                lectures.subject_id,
-                lectures.title,
-                lectures.lecture_date,
-                lectures.start_time,
-                lectures.end_time,
-                lectures.hall,
-                lectures.instructor,
-                subjects.name AS subject_name,
-                subjects.code AS subject_code
-             FROM public.lectures
-             LEFT JOIN public.subjects
-                ON lectures.subject_id = subjects.id
-             WHERE lectures.student_id = $1
-             ORDER BY
-                lectures.lecture_date ASC,
-                lectures.start_time ASC`,
-            [studentId]
-        );
+        lecturesList.innerHTML = `
+            <p style="text-align:center;">
+                جاري تحميل المحاضرات...
+            </p>
+        `;
 
-        res.json(result.rows);
 
-    } catch (error) {
-        console.error("GET /lectures error:", error);
+        const response = await fetch("/lectures", {
+            method: "GET",
 
-        res.status(500).json({
-            error: "Database error"
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
         });
-    }
-});
 
 
-// =====================================================
-// ADMIN - GET ALL LECTURES
-// =====================================================
-
-router.get("/admin/all", authMiddleware, adminOnly, async (req, res) => {
-    try {
-        const result = await db.query(
-            `SELECT
-                lectures.id,
-                lectures.student_id,
-                lectures.subject_id,
-                lectures.title,
-                lectures.lecture_date,
-                lectures.start_time,
-                lectures.end_time,
-                lectures.hall,
-                lectures.instructor,
-                subjects.name AS subject_name,
-                subjects.code AS subject_code,
-                students.name AS student_name,
-                students.student_id AS student_number
-             FROM public.lectures
-             LEFT JOIN public.subjects
-                ON lectures.subject_id = subjects.id
-             LEFT JOIN public.students
-                ON lectures.student_id = students.id
-             ORDER BY
-                lectures.lecture_date ASC,
-                lectures.start_time ASC`
-        );
-
-        res.json(result.rows);
-
-    } catch (error) {
-        console.error("GET /lectures/admin/all error:", error);
-
-        res.status(500).json({
-            error: "Database error"
-        });
-    }
-});
+        const data = await response.json();
 
 
-// =====================================================
-// STUDENT - GET NEXT LECTURE
-// =====================================================
+        if (!response.ok) {
 
-router.get("/next", authMiddleware, async (req, res) => {
-    try {
-        const studentId = req.user.id;
+            if (response.status === 401) {
+                logout();
+                return;
+            }
 
-        const result = await db.query(
-            `SELECT
-                lectures.id,
-                lectures.student_id,
-                lectures.subject_id,
-                lectures.title,
-                lectures.lecture_date,
-                lectures.start_time,
-                lectures.end_time,
-                lectures.hall,
-                subjects.name AS subject_name,
-                subjects.code AS subject_code
-             FROM public.lectures
-             LEFT JOIN public.subjects
-                ON lectures.subject_id = subjects.id
-             WHERE lectures.student_id = $1
-             AND (
-                 lectures.lecture_date > CURRENT_DATE
-                 OR (
-                     lectures.lecture_date = CURRENT_DATE
-                     AND lectures.start_time >= CURRENT_TIME
-                 )
-             )
-             ORDER BY
-                lectures.lecture_date ASC,
-                lectures.start_time ASC
-             LIMIT 1`,
-            [studentId]
-        );
-
-        if (result.rows.length === 0) {
-            return res.json(null);
-        }
-
-        res.json(result.rows[0]);
-
-    } catch (error) {
-        console.error("GET /lectures/next error:", error);
-
-        res.status(500).json({
-            error: "Database error"
-        });
-    }
-});
-
-
-// =====================================================
-// STUDENT - GET ONE OF MY LECTURES
-// =====================================================
-
-router.get("/:id", authMiddleware, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const studentId = req.user.id;
-
-        const result = await db.query(
-            `SELECT
-                lectures.id,
-                lectures.student_id,
-                lectures.subject_id,
-                lectures.title,
-                lectures.lecture_date,
-                lectures.start_time,
-                lectures.end_time,
-                lectures.hall,
-                lectures.instructor,
-                subjects.name AS subject_name,
-                subjects.code AS subject_code
-             FROM public.lectures
-             LEFT JOIN public.subjects
-                ON lectures.subject_id = subjects.id
-             WHERE lectures.id = $1
-             AND lectures.student_id = $2`,
-            [id, studentId]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({
-                error: "المحاضرة غير موجودة في حسابك"
-            });
-        }
-
-        res.json(result.rows[0]);
-
-    } catch (error) {
-        console.error("GET /lectures/:id error:", error);
-
-        res.status(500).json({
-            error: "Database error"
-        });
-    }
-});
-
-
-// =====================================================
-// STUDENT - ADD MY LECTURE
-// =====================================================
-
-router.post("/", authMiddleware, async (req, res) => {
-    try {
-        const studentId = req.user.id;
-
-        const {
-            subject_id,
-            title,
-            lecture_date,
-            start_time,
-            end_time,
-            hall,
-            instructor
-        } = req.body;
-
-
-        if (
-            !subject_id ||
-            !title ||
-            !lecture_date ||
-            !start_time ||
-            !end_time
-        ) {
-            return res.status(400).json({
-                error: "المادة واسم المحاضرة والتاريخ ووقت البداية والنهاية مطلوبة"
-            });
+            throw new Error(
+                data.error ||
+                "حدث خطأ في تحميل المحاضرات"
+            );
         }
 
 
-        // التأكد أن المادة تخص الطالب نفسه
-        const subject = await db.query(
-            `SELECT
-                id,
-                name,
-                code
-             FROM public.subjects
-             WHERE id = $1
-             AND student_id = $2`,
-            [subject_id, studentId]
-        );
+        if (!data || data.length === 0) {
 
+            lecturesList.innerHTML = `
+                <div
+                    class="dashboard-card"
+                    style="text-align:center;"
+                >
 
-        if (subject.rows.length === 0) {
-            return res.status(403).json({
-                error: "لا يمكنك إضافة محاضرة لمادة ليست ضمن موادك"
-            });
+                    <h3>
+                        🎓 مافيش محاضرات مضافة حاليًا
+                    </h3>
+
+                    <p>
+                        أضف أول محاضرة من النموذج الموجود فوق.
+                    </p>
+
+                </div>
+            `;
+
+            return;
         }
 
 
-        const result = await db.query(
-            `INSERT INTO public.lectures
-                (
-                    student_id,
-                    subject_id,
-                    title,
-                    lecture_date,
-                    start_time,
-                    end_time,
-                    hall,
-                    instructor,
-                    subject_name
-                )
-             VALUES
-                (
-                    $1,
-                    $2,
-                    $3,
-                    $4,
-                    $5,
-                    $6,
-                    $7,
-                    $8,
-                    $9
-                )
-             RETURNING
-                id,
-                student_id,
-                subject_id,
-                title,
-                lecture_date,
-                start_time,
-                end_time,
-                hall,
-                instructor,
-                subject_name`,
-            [
-                studentId,
-                subject_id,
-                String(title).trim(),
-                lecture_date,
-                start_time,
-                end_time,
-                hall ? String(hall).trim() : null,
-                instructor ? String(instructor).trim() : null,
-                subject.rows[0].name
-            ]
-        );
+        lecturesList.innerHTML = "";
 
 
-        res.status(201).json({
-            message: "تمت إضافة المحاضرة بنجاح",
-            lecture: result.rows[0]
+        data.forEach(lecture => {
+
+            const card =
+                document.createElement("div");
+
+
+            card.className =
+                "dashboard-card";
+
+
+            card.style.marginBottom =
+                "15px";
+
+
+            card.style.textAlign =
+                "right";
+
+
+            card.innerHTML = `
+
+                <h2>
+                    📚 ${escapeHtml(
+                        lecture.subject_name ||
+                        "بدون مادة"
+                    )}
+                </h2>
+
+
+                <p>
+                    📝 المحاضرة:
+                    ${escapeHtml(
+                        lecture.title ||
+                        "غير محدد"
+                    )}
+                </p>
+
+
+                <p>
+                    📅 التاريخ:
+                    ${formatDate(
+                        lecture.lecture_date
+                    )}
+                </p>
+
+
+                <p>
+                    ⏰ الوقت:
+                    ${formatTime(
+                        lecture.start_time
+                    )}
+                    -
+                    ${formatTime(
+                        lecture.end_time
+                    )}
+                </p>
+
+
+                <p>
+                    🏫 القاعة:
+                    ${escapeHtml(
+                        lecture.hall ||
+                        "غير محددة"
+                    )}
+                </p>
+
+
+                <p>
+                    👨‍🏫 المدرس:
+                    ${escapeHtml(
+                        lecture.instructor ||
+                        "غير محدد"
+                    )}
+                </p>
+
+
+                <p>
+                    🔢 كود المادة:
+                    ${escapeHtml(
+                        lecture.subject_code ||
+                        "غير محدد"
+                    )}
+                </p>
+
+
+                <div
+                    style="
+                        display:flex;
+                        gap:10px;
+                        flex-wrap:wrap;
+                        margin-top:15px;
+                    "
+                >
+
+                    <button
+                        type="button"
+                        onclick="editLecture(${lecture.id})"
+                    >
+                        ✏️ تعديل
+                    </button>
+
+
+                    <button
+                        type="button"
+                        onclick="deleteLecture(${lecture.id})"
+                    >
+                        🗑️ حذف
+                    </button>
+
+                </div>
+
+            `;
+
+
+            lecturesList.appendChild(card);
+
         });
 
     } catch (error) {
-        console.error("POST /lectures error:", error);
 
-        res.status(500).json({
-            error: "Database error"
-        });
+        console.error(
+            "Lectures error:",
+            error
+        );
+
+
+        lecturesList.innerHTML = `
+            <p style="text-align:center;">
+                ${escapeHtml(error.message)}
+            </p>
+        `;
     }
-});
+}
 
 
-// =====================================================
-// ADMIN - ADD LECTURE
-// =====================================================
+// ==========================================
+// إضافة محاضرة
+// ==========================================
 
-router.post("/admin", authMiddleware, adminOnly, async (req, res) => {
-    try {
-        const {
-            student_id,
-            subject_id,
-            title,
-            lecture_date,
-            start_time,
-            end_time,
-            hall,
-            instructor
-        } = req.body;
+if (addLectureForm) {
+
+    addLectureForm.addEventListener(
+        "submit",
+        async function (event) {
+
+            event.preventDefault();
 
 
-        if (
-            !student_id ||
-            !subject_id ||
-            !title ||
-            !lecture_date ||
-            !start_time ||
-            !end_time
-        ) {
-            return res.status(400).json({
-                error: "بيانات المحاضرة كاملة مطلوبة"
-            });
+            const subjectId =
+                subjectSelect.value;
+
+
+            const title =
+                document.getElementById(
+                    "lectureTitle"
+                ).value.trim();
+
+
+            const lectureDate =
+                document.getElementById(
+                    "lectureDate"
+                ).value;
+
+
+            const startTime =
+                document.getElementById(
+                    "startTime"
+                ).value;
+
+
+            const endTime =
+                document.getElementById(
+                    "endTime"
+                ).value;
+
+
+            const hall =
+                document.getElementById(
+                    "hall"
+                ).value.trim();
+
+
+            if (
+                !subjectId ||
+                !title ||
+                !lectureDate ||
+                !startTime ||
+                !endTime
+            ) {
+
+                lectureMessage.textContent =
+                    "⚠️ لازم تعبي المادة واسم المحاضرة والتاريخ والأوقات.";
+
+                return;
+            }
+
+
+            if (startTime >= endTime) {
+
+                lectureMessage.textContent =
+                    "⚠️ وقت النهاية لازم يكون بعد وقت البداية.";
+
+                return;
+            }
+
+
+            lectureMessage.textContent =
+                "جاري إضافة المحاضرة...";
+
+
+            try {
+
+                const response =
+                    await fetch("/lectures", {
+
+                        method: "POST",
+
+                        headers: {
+
+                            "Content-Type":
+                                "application/json",
+
+                            "Authorization":
+                                `Bearer ${token}`
+
+                        },
+
+                        body: JSON.stringify({
+
+                            subject_id:
+                                Number(subjectId),
+
+                            title,
+
+                            lecture_date,
+
+                            start_time,
+
+                            end_time,
+
+                            hall
+
+                        })
+
+                    });
+
+
+                const data =
+                    await response.json();
+
+
+                if (!response.ok) {
+
+                    if (response.status === 401) {
+                        logout();
+                        return;
+                    }
+
+                    throw new Error(
+                        data.error ||
+                        "فشل إضافة المحاضرة"
+                    );
+                }
+
+
+                lectureMessage.textContent =
+                    "✅ تمت إضافة المحاضرة بنجاح";
+
+
+                addLectureForm.reset();
+
+
+                await loadSubjects();
+
+                await loadLectures();
+
+
+            } catch (error) {
+
+                console.error(
+                    "Add lecture error:",
+                    error
+                );
+
+
+                lectureMessage.textContent =
+                    error.message;
+            }
+
+        }
+    );
+}
+
+
+// ==========================================
+// تعديل محاضرة
+// ==========================================
+
+window.editLecture =
+    async function (lectureId) {
+
+        try {
+
+            const response =
+                await fetch(
+                    `/lectures/${lectureId}`,
+                    {
+                        method: "GET",
+
+                        headers: {
+                            "Authorization":
+                                `Bearer ${token}`
+                        }
+                    }
+                );
+
+
+            const lecture =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                if (response.status === 401) {
+                    logout();
+                    return;
+                }
+
+                throw new Error(
+                    lecture.error ||
+                    "فشل تحميل بيانات المحاضرة"
+                );
+            }
+
+
+            const newTitle =
+                prompt(
+                    "اسم المحاضرة:",
+                    lecture.title || ""
+                );
+
+
+            if (newTitle === null) {
+                return;
+            }
+
+
+            const newDate =
+                prompt(
+                    "التاريخ بصيغة YYYY-MM-DD:",
+                    formatInputDate(
+                        lecture.lecture_date
+                    )
+                );
+
+
+            if (newDate === null) {
+                return;
+            }
+
+
+            const newStart =
+                prompt(
+                    "وقت البداية بصيغة HH:MM:",
+                    formatInputTime(
+                        lecture.start_time
+                    )
+                );
+
+
+            if (newStart === null) {
+                return;
+            }
+
+
+            const newEnd =
+                prompt(
+                    "وقت النهاية بصيغة HH:MM:",
+                    formatInputTime(
+                        lecture.end_time
+                    )
+                );
+
+
+            if (newEnd === null) {
+                return;
+            }
+
+
+            const newHall =
+                prompt(
+                    "القاعة:",
+                    lecture.hall || ""
+                );
+
+
+            if (newHall === null) {
+                return;
+            }
+
+
+            const responseUpdate =
+                await fetch(
+                    `/lectures/${lectureId}`,
+                    {
+                        method: "PUT",
+
+                        headers: {
+
+                            "Content-Type":
+                                "application/json",
+
+                            "Authorization":
+                                `Bearer ${token}`
+
+                        },
+
+                        body: JSON.stringify({
+
+                            subject_id:
+                                lecture.subject_id,
+
+                            title:
+                                newTitle.trim(),
+
+                            lecture_date:
+                                newDate.trim(),
+
+                            start_time:
+                                newStart.trim(),
+
+                            end_time:
+                                newEnd.trim(),
+
+                            hall:
+                                newHall.trim(),
+
+                            instructor:
+                                lecture.instructor || ""
+
+                        })
+                    }
+                );
+
+
+            const data =
+                await responseUpdate.json();
+
+
+            if (!responseUpdate.ok) {
+
+                if (responseUpdate.status === 401) {
+                    logout();
+                    return;
+                }
+
+                throw new Error(
+                    data.error ||
+                    "فشل تعديل المحاضرة"
+                );
+            }
+
+
+            alert(
+                "✅ تم تعديل المحاضرة بنجاح"
+            );
+
+
+            await loadLectures();
+
+
+        } catch (error) {
+
+            console.error(
+                "Edit lecture error:",
+                error
+            );
+
+
+            alert(error.message);
+        }
+
+    };
+
+
+// ==========================================
+// حذف محاضرة
+// ==========================================
+
+window.deleteLecture =
+    async function (lectureId) {
+
+        const confirmed =
+            confirm(
+                "هل أنت متأكد من حذف هذه المحاضرة؟"
+            );
+
+
+        if (!confirmed) {
+            return;
         }
 
 
-        const student = await db.query(
-            `SELECT id
-             FROM public.students
-             WHERE id = $1`,
-            [student_id]
-        );
+        try {
+
+            const response =
+                await fetch(
+                    `/lectures/${lectureId}`,
+                    {
+                        method: "DELETE",
+
+                        headers: {
+                            "Authorization":
+                                `Bearer ${token}`
+                        }
+                    }
+                );
 
 
-        if (student.rows.length === 0) {
-            return res.status(404).json({
-                error: "الطالب غير موجود"
-            });
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                if (response.status === 401) {
+                    logout();
+                    return;
+                }
+
+                throw new Error(
+                    data.error ||
+                    "فشل حذف المحاضرة"
+                );
+            }
+
+
+            alert(
+                "✅ تم حذف المحاضرة بنجاح"
+            );
+
+
+            await loadLectures();
+
+
+        } catch (error) {
+
+            console.error(
+                "Delete lecture error:",
+                error
+            );
+
+
+            alert(error.message);
         }
 
-
-        const subject = await db.query(
-            `SELECT id, name, code
-             FROM public.subjects
-             WHERE id = $1`,
-            [subject_id]
-        );
+    };
 
 
-        if (subject.rows.length === 0) {
-            return res.status(404).json({
-                error: "المادة غير موجودة"
-            });
-        }
+// ==========================================
+// تنسيق التاريخ
+// ==========================================
 
+function formatDate(dateValue) {
 
-        const result = await db.query(
-            `INSERT INTO public.lectures
-                (
-                    student_id,
-                    subject_id,
-                    title,
-                    lecture_date,
-                    start_time,
-                    end_time,
-                    hall,
-                    instructor,
-                    subject_name
-                )
-             VALUES
-                ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-             RETURNING *`,
-            [
-                student_id,
-                subject_id,
-                String(title).trim(),
-                lecture_date,
-                start_time,
-                end_time,
-                hall ? String(hall).trim() : null,
-                instructor ? String(instructor).trim() : null,
-                subject.rows[0].name
-            ]
-        );
-
-
-        res.status(201).json({
-            message: "تمت إضافة المحاضرة بنجاح",
-            lecture: result.rows[0]
-        });
-
-    } catch (error) {
-        console.error("POST /lectures/admin error:", error);
-
-        res.status(500).json({
-            error: "Database error"
-        });
+    if (!dateValue) {
+        return "غير محدد";
     }
-});
 
 
-// =====================================================
-// STUDENT - UPDATE MY LECTURE
-// =====================================================
-
-router.put("/:id", authMiddleware, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const studentId = req.user.id;
-
-        const {
-            subject_id,
-            title,
-            lecture_date,
-            start_time,
-            end_time,
-            hall,
-            instructor
-        } = req.body;
+    const date =
+        new Date(dateValue);
 
 
-        if (
-            !subject_id ||
-            !title ||
-            !lecture_date ||
-            !start_time ||
-            !end_time
-        ) {
-            return res.status(400).json({
-                error: "بيانات المحاضرة كاملة مطلوبة"
-            });
-        }
-
-
-        const subject = await db.query(
-            `SELECT id, name, code
-             FROM public.subjects
-             WHERE id = $1
-             AND student_id = $2`,
-            [subject_id, studentId]
-        );
-
-
-        if (subject.rows.length === 0) {
-            return res.status(403).json({
-                error: "لا يمكنك ربط المحاضرة بمادة ليست ضمن موادك"
-            });
-        }
-
-
-        const result = await db.query(
-            `UPDATE public.lectures
-             SET
-                subject_id = $1,
-                subject_name = $2,
-                title = $3,
-                lecture_date = $4,
-                start_time = $5,
-                end_time = $6,
-                hall = $7,
-                instructor = $8
-             WHERE id = $9
-             AND student_id = $10
-             RETURNING *`,
-            [
-                subject_id,
-                subject.rows[0].name,
-                String(title).trim(),
-                lecture_date,
-                start_time,
-                end_time,
-                hall ? String(hall).trim() : null,
-                instructor ? String(instructor).trim() : null,
-                id,
-                studentId
-            ]
-        );
-
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({
-                error: "المحاضرة غير موجودة في حسابك"
-            });
-        }
-
-
-        res.json({
-            message: "تم تعديل المحاضرة بنجاح",
-            lecture: result.rows[0]
-        });
-
-    } catch (error) {
-        console.error("PUT /lectures/:id error:", error);
-
-        res.status(500).json({
-            error: "Database error"
-        });
+    if (isNaN(date.getTime())) {
+        return dateValue;
     }
-});
 
 
-// =====================================================
-// ADMIN - UPDATE LECTURE
-// =====================================================
-
-router.put("/admin/:id", authMiddleware, adminOnly, async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        const {
-            student_id,
-            subject_id,
-            title,
-            lecture_date,
-            start_time,
-            end_time,
-            hall,
-            instructor
-        } = req.body;
-
-
-        if (
-            !student_id ||
-            !subject_id ||
-            !title ||
-            !lecture_date ||
-            !start_time ||
-            !end_time
-        ) {
-            return res.status(400).json({
-                error: "بيانات المحاضرة كاملة مطلوبة"
-            });
+    return date.toLocaleDateString(
+        "ar-LY",
+        {
+            year: "numeric",
+            month: "long",
+            day: "numeric"
         }
+    );
+}
 
 
-        const subject = await db.query(
-            `SELECT id, name
-             FROM public.subjects
-             WHERE id = $1`,
-            [subject_id]
-        );
+// ==========================================
+// تنسيق التاريخ للإدخال
+// ==========================================
 
+function formatInputDate(dateValue) {
 
-        if (subject.rows.length === 0) {
-            return res.status(404).json({
-                error: "المادة غير موجودة"
-            });
-        }
-
-
-        const result = await db.query(
-            `UPDATE public.lectures
-             SET
-                student_id = $1,
-                subject_id = $2,
-                subject_name = $3,
-                title = $4,
-                lecture_date = $5,
-                start_time = $6,
-                end_time = $7,
-                hall = $8,
-                instructor = $9
-             WHERE id = $10
-             RETURNING *`,
-            [
-                student_id,
-                subject_id,
-                subject.rows[0].name,
-                String(title).trim(),
-                lecture_date,
-                start_time,
-                end_time,
-                hall ? String(hall).trim() : null,
-                instructor ? String(instructor).trim() : null,
-                id
-            ]
-        );
-
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({
-                error: "المحاضرة غير موجودة"
-            });
-        }
-
-
-        res.json({
-            message: "تم تعديل المحاضرة بنجاح",
-            lecture: result.rows[0]
-        });
-
-    } catch (error) {
-        console.error("PUT /lectures/admin/:id error:", error);
-
-        res.status(500).json({
-            error: "Database error"
-        });
+    if (!dateValue) {
+        return "";
     }
-});
 
 
-// =====================================================
-// STUDENT - DELETE MY LECTURE
-// =====================================================
-
-router.delete("/:id", authMiddleware, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const studentId = req.user.id;
-
-        const result = await db.query(
-            `DELETE FROM public.lectures
-             WHERE id = $1
-             AND student_id = $2
-             RETURNING *`,
-            [id, studentId]
-        );
+    const date =
+        new Date(dateValue);
 
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({
-                error: "المحاضرة غير موجودة في حسابك"
-            });
-        }
-
-
-        res.json({
-            message: "تم حذف المحاضرة بنجاح",
-            lecture: result.rows[0]
-        });
-
-    } catch (error) {
-        console.error("DELETE /lectures/:id error:", error);
-
-        res.status(500).json({
-            error: "Database error"
-        });
+    if (isNaN(date.getTime())) {
+        return String(dateValue).split("T")[0];
     }
-});
 
 
-// =====================================================
-// ADMIN - DELETE LECTURE
-// =====================================================
-
-router.delete("/admin/:id", authMiddleware, adminOnly, async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        const result = await db.query(
-            `DELETE FROM public.lectures
-             WHERE id = $1
-             RETURNING *`,
-            [id]
-        );
+    const year =
+        date.getFullYear();
 
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({
-                error: "المحاضرة غير موجودة"
-            });
-        }
+    const month =
+        String(
+            date.getMonth() + 1
+        ).padStart(2, "0");
 
 
-        res.json({
-            message: "تم حذف المحاضرة بنجاح",
-            lecture: result.rows[0]
-        });
+    const day =
+        String(
+            date.getDate()
+        ).padStart(2, "0");
 
-    } catch (error) {
-        console.error("DELETE /lectures/admin/:id error:", error);
 
-        res.status(500).json({
-            error: "Database error"
-        });
+    return `${year}-${month}-${day}`;
+}
+
+
+// ==========================================
+// تنسيق الوقت
+// ==========================================
+
+function formatTime(timeValue) {
+
+    if (!timeValue) {
+        return "غير محدد";
     }
-});
 
 
-module.exports = router;
+    const parts =
+        String(timeValue).split(":");
+
+
+    if (parts.length < 2) {
+        return timeValue;
+    }
+
+
+    const hour =
+        Number(parts[0]);
+
+
+    const minute =
+        parts[1];
+
+
+    if (isNaN(hour)) {
+        return timeValue;
+    }
+
+
+    const period =
+        hour >= 12 ? "م" : "ص";
+
+
+    const displayHour =
+        hour % 12 || 12;
+
+
+    return `${displayHour}:${minute} ${period}`;
+}
+
+
+// ==========================================
+// تنسيق الوقت للإدخال
+// ==========================================
+
+function formatInputTime(timeValue) {
+
+    if (!timeValue) {
+        return "";
+    }
+
+
+    return String(timeValue)
+        .substring(0, 5);
+}
+
+
+// ==========================================
+// حماية النصوص
+// ==========================================
+
+function escapeHtml(value) {
+
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+// ==========================================
+// تسجيل الخروج
+// ==========================================
+
+function logout() {
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("student");
+
+    window.location.href =
+        "index.html";
+}
+
+
+// ==========================================
+// الرجوع للرئيسية
+// ==========================================
+
+function goBack() {
+
+    window.location.href =
+        "dashboard.html";
+}
+
+
+// ==========================================
+// تشغيل الصفحة
+// ==========================================
+
+loadSubjects();
+loadLectures();
