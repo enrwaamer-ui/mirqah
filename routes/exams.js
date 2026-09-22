@@ -6,25 +6,27 @@ const db = require("../db");
 const authMiddleware = require("../middleware/auth");
 
 
-// =====================================
-// التحقق من صلاحية Admin
-// =====================================
+/* =========================
+   التحقق من صلاحية Admin
+========================= */
 
 function adminOnly(req, res, next) {
 
     if (!req.user || req.user.role !== "admin") {
+
         return res.status(403).json({
-            error: "ليس لديك صلاحية Admin"
+            error: "ليس لديك صلاحية الإدارة"
         });
+
     }
 
     next();
 }
 
 
-// =====================================
-// جلب جميع امتحانات الطالب الحالي
-// =====================================
+/* =========================
+   امتحانات الطالب الحالي
+========================= */
 
 router.get("/", authMiddleware, async (req, res) => {
 
@@ -35,18 +37,21 @@ router.get("/", authMiddleware, async (req, res) => {
         const result = await db.query(
             `SELECT
                 exams.id,
+                exams.student_id,
+                exams.subject_id,
                 exams.subject_name,
                 exams.exam_date,
                 exams.start_time,
                 exams.hall,
-                exams.subject_id,
                 subjects.name AS subject_display_name,
                 subjects.code AS subject_code
              FROM public.exams
              LEFT JOIN public.subjects
                 ON exams.subject_id = subjects.id
              WHERE exams.student_id = $1
-             ORDER BY exams.exam_date, exams.start_time`,
+             ORDER BY
+                exams.exam_date ASC,
+                exams.start_time ASC`,
             [studentId]
         );
 
@@ -54,7 +59,10 @@ router.get("/", authMiddleware, async (req, res) => {
 
     } catch (error) {
 
-        console.error("GET /exams error:", error);
+        console.error(
+            "GET /exams error:",
+            error
+        );
 
         res.status(500).json({
             error: "Database error"
@@ -65,9 +73,9 @@ router.get("/", authMiddleware, async (req, res) => {
 });
 
 
-// =====================================
-// Admin - جلب جميع الامتحانات
-// =====================================
+/* =========================
+   Admin - جميع الامتحانات
+========================= */
 
 router.get(
     "/admin/all",
@@ -80,12 +88,12 @@ router.get(
             const result = await db.query(
                 `SELECT
                     exams.id,
+                    exams.student_id,
+                    exams.subject_id,
                     exams.subject_name,
                     exams.exam_date,
                     exams.start_time,
                     exams.hall,
-                    exams.subject_id,
-                    exams.student_id,
 
                     students.name AS student_name,
                     students.student_id AS student_number,
@@ -102,9 +110,9 @@ router.get(
                     ON exams.subject_id = subjects.id
 
                  ORDER BY
-                    exams.exam_date,
-                    exams.start_time,
-                    students.name`
+                    exams.exam_date ASC,
+                    exams.start_time ASC,
+                    students.name ASC`
             );
 
             res.json(result.rows);
@@ -126,9 +134,9 @@ router.get(
 );
 
 
-// =====================================
-// جلب امتحان واحد للطالب الحالي
-// =====================================
+/* =========================
+   امتحان واحد للطالب
+========================= */
 
 router.get("/:id", authMiddleware, async (req, res) => {
 
@@ -141,28 +149,29 @@ router.get("/:id", authMiddleware, async (req, res) => {
         const result = await db.query(
             `SELECT
                 exams.id,
+                exams.student_id,
+                exams.subject_id,
                 exams.subject_name,
                 exams.exam_date,
                 exams.start_time,
                 exams.hall,
-                exams.subject_id,
                 subjects.name AS subject_display_name,
                 subjects.code AS subject_code
-
              FROM public.exams
-
              LEFT JOIN public.subjects
                 ON exams.subject_id = subjects.id
-
              WHERE exams.id = $1
              AND exams.student_id = $2`,
-            [id, studentId]
+            [
+                id,
+                studentId
+            ]
         );
 
         if (result.rows.length === 0) {
 
             return res.status(404).json({
-                error: "الامتحان غير موجود أو لا يخص حسابك"
+                error: "الامتحان غير موجود في حسابك"
             });
 
         }
@@ -185,61 +194,70 @@ router.get("/:id", authMiddleware, async (req, res) => {
 });
 
 
-// =====================================
-// إضافة امتحان للطالب الحالي
-// =====================================
+/* =========================
+   إضافة امتحان للطالب
+========================= */
 
 router.post("/", authMiddleware, async (req, res) => {
 
     try {
 
+        const studentId = req.user.id;
+
         const {
             subject_id,
-            subject_name,
             exam_date,
             start_time,
             hall
         } = req.body;
 
-        const studentId = req.user.id;
-
 
         if (
             !subject_id ||
-            !subject_name ||
             !exam_date ||
-            !start_time ||
-            !hall
+            !start_time
         ) {
 
             return res.status(400).json({
-                error: "جميع بيانات الامتحان مطلوبة"
+                error:
+                    "المادة والتاريخ ووقت الامتحان مطلوبة"
             });
 
         }
 
 
-        // التأكد أن الطالب مسجل في المادة
+        /* التأكد أن المادة تخص الطالب */
 
-        const enrollment = await db.query(
-            `SELECT id
-             FROM public.enrollments
-             WHERE student_id = $1
-             AND subject_id = $2
-             AND status = 'active'`,
-            [studentId, subject_id]
+        const subject = await db.query(
+            `SELECT
+                id,
+                name,
+                code
+             FROM public.subjects
+             WHERE id = $1
+             AND student_id = $2`,
+            [
+                subject_id,
+                studentId
+            ]
         );
 
 
-        if (enrollment.rows.length === 0) {
+        if (subject.rows.length === 0) {
 
             return res.status(403).json({
                 error:
-                    "لا يمكنك إضافة امتحان لمادة غير مسجل فيها"
+                    "لا يمكنك إضافة امتحان لمادة ليست ضمن موادك"
             });
 
         }
 
+
+        const subjectName =
+            subject.rows[0].name;
+
+
+        /* إضافة الامتحان */
 
         const result = await db.query(
             `INSERT INTO public.exams
@@ -251,15 +269,25 @@ router.post("/", authMiddleware, async (req, res) => {
                 start_time,
                 hall
             )
-            VALUES ($1, $2, $3, $4, $5, $6)
+            VALUES
+            (
+                $1,
+                $2,
+                $3,
+                $4,
+                $5,
+                $6
+            )
             RETURNING *`,
             [
                 studentId,
                 subject_id,
-                subject_name,
+                subjectName,
                 exam_date,
                 start_time,
                 hall
+                    ? String(hall).trim()
+                    : null
             ]
         );
 
@@ -290,9 +318,9 @@ router.post("/", authMiddleware, async (req, res) => {
 });
 
 
-// =====================================
-// Admin - إضافة امتحان لطالب محدد
-// =====================================
+/* =========================
+   Admin - إضافة امتحان
+========================= */
 
 router.post(
     "/admin",
@@ -315,19 +343,18 @@ router.post(
                 !student_id ||
                 !subject_id ||
                 !exam_date ||
-                !start_time ||
-                !hall
+                !start_time
             ) {
 
                 return res.status(400).json({
                     error:
-                        "الطالب والمادة والتاريخ والوقت والقاعة مطلوبة"
+                        "الطالب والمادة والتاريخ والوقت مطلوبة"
                 });
 
             }
 
 
-            // التأكد من وجود الطالب
+            /* التأكد من وجود الطالب */
 
             const studentResult =
                 await db.query(
@@ -347,11 +374,14 @@ router.post(
             }
 
 
-            // جلب المادة
+            /* التأكد من وجود المادة */
 
             const subjectResult =
                 await db.query(
-                    `SELECT id, name
+                    `SELECT
+                        id,
+                        name,
+                        code
                      FROM public.subjects
                      WHERE id = $1`,
                     [subject_id]
@@ -371,33 +401,7 @@ router.post(
                 subjectResult.rows[0].name;
 
 
-            // التأكد أن الطالب مسجل في المادة
-
-            const enrollment =
-                await db.query(
-                    `SELECT id
-                     FROM public.enrollments
-                     WHERE student_id = $1
-                     AND subject_id = $2
-                     AND status = 'active'`,
-                    [
-                        student_id,
-                        subject_id
-                    ]
-                );
-
-
-            if (enrollment.rows.length === 0) {
-
-                return res.status(403).json({
-                    error:
-                        "الطالب غير مسجل في هذه المادة"
-                });
-
-            }
-
-
-            // إضافة الامتحان
+            /* إضافة الامتحان */
 
             const result =
                 await db.query(
@@ -410,7 +414,15 @@ router.post(
                         start_time,
                         hall
                     )
-                    VALUES ($1, $2, $3, $4, $5, $6)
+                    VALUES
+                    (
+                        $1,
+                        $2,
+                        $3,
+                        $4,
+                        $5,
+                        $6
+                    )
                     RETURNING *`,
                     [
                         student_id,
@@ -419,6 +431,8 @@ router.post(
                         exam_date,
                         start_time,
                         hall
+                            ? String(hall).trim()
+                            : null
                     ]
                 );
 
@@ -450,9 +464,9 @@ router.post(
 );
 
 
-// =====================================
-// تعديل امتحان الطالب الحالي
-// =====================================
+/* =========================
+   تعديل امتحان الطالب
+========================= */
 
 router.put("/:id", authMiddleware, async (req, res) => {
 
@@ -460,52 +474,62 @@ router.put("/:id", authMiddleware, async (req, res) => {
 
         const { id } = req.params;
 
+        const studentId = req.user.id;
+
         const {
             subject_id,
-            subject_name,
             exam_date,
             start_time,
             hall
         } = req.body;
 
-        const studentId = req.user.id;
-
 
         if (
             !subject_id ||
-            !subject_name ||
             !exam_date ||
-            !start_time ||
-            !hall
+            !start_time
         ) {
 
             return res.status(400).json({
                 error:
-                    "جميع بيانات الامتحان مطلوبة"
+                    "المادة والتاريخ ووقت الامتحان مطلوبة"
             });
 
         }
 
 
-        const enrollment = await db.query(
-            `SELECT id
-             FROM public.enrollments
-             WHERE student_id = $1
-             AND subject_id = $2
-             AND status = 'active'`,
-            [studentId, subject_id]
+        /* التأكد أن المادة تخص الطالب */
+
+        const subject = await db.query(
+            `SELECT
+                id,
+                name,
+                code
+             FROM public.subjects
+             WHERE id = $1
+             AND student_id = $2`,
+            [
+                subject_id,
+                studentId
+            ]
         );
 
 
-        if (enrollment.rows.length === 0) {
+        if (subject.rows.length === 0) {
 
             return res.status(403).json({
                 error:
-                    "لا يمكنك ربط الامتحان بمادة غير مسجل فيها"
+                    "لا يمكنك ربط الامتحان بمادة ليست ضمن موادك"
             });
 
         }
 
+
+        const subjectName =
+            subject.rows[0].name;
+
+
+        /* تعديل الامتحان */
 
         const result = await db.query(
             `UPDATE public.exams
@@ -515,17 +539,17 @@ router.put("/:id", authMiddleware, async (req, res) => {
                 exam_date = $3,
                 start_time = $4,
                 hall = $5
-
              WHERE id = $6
              AND student_id = $7
-
              RETURNING *`,
             [
                 subject_id,
-                subject_name,
+                subjectName,
                 exam_date,
                 start_time,
-                hall,
+                hall
+                    ? String(hall).trim()
+                    : null,
                 id,
                 studentId
             ]
@@ -536,7 +560,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
 
             return res.status(404).json({
                 error:
-                    "الامتحان غير موجود أو لا يخص حسابك"
+                    "الامتحان غير موجود في حسابك"
             });
 
         }
@@ -568,9 +592,9 @@ router.put("/:id", authMiddleware, async (req, res) => {
 });
 
 
-// =====================================
-// حذف امتحان الطالب الحالي
-// =====================================
+/* =========================
+   حذف امتحان الطالب
+========================= */
 
 router.delete("/:id", authMiddleware, async (req, res) => {
 
@@ -597,7 +621,7 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 
             return res.status(404).json({
                 error:
-                    "الامتحان غير موجود أو لا يخص حسابك"
+                    "الامتحان غير موجود في حسابك"
             });
 
         }
@@ -629,9 +653,9 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 });
 
 
-// =====================================
-// Admin - حذف أي امتحان
-// =====================================
+/* =========================
+   Admin - حذف امتحان
+========================= */
 
 router.delete(
     "/admin/:id",
