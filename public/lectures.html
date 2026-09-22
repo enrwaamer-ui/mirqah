@@ -30,11 +30,216 @@
 
     <main class="dashboard">
 
-        <h1>
-            المحاضرات 🎓
-        </h1>
+        <section class="welcome-card">
 
-        <div id="lecturesList"></div>
+            <h1>
+                🎓 المحاضرات
+            </h1>
+
+            <p>
+                أضف جدول محاضراتك الدراسية
+            </p>
+
+        </section>
+
+
+        <!-- إضافة محاضرة -->
+
+        <section class="dashboard-section">
+
+            <h2>
+                ➕ إضافة محاضرة
+            </h2>
+
+
+            <form id="addLectureForm">
+
+
+                <!-- المادة -->
+
+                <div style="margin-bottom:15px;">
+
+                    <label for="subjectId">
+                        المادة
+                    </label>
+
+                    <select
+                        id="subjectId"
+                        required
+                        style="
+                            width:100%;
+                            box-sizing:border-box;
+                            padding:12px;
+                            margin-top:8px;
+                        "
+                    >
+
+                        <option value="">
+                            جاري تحميل المواد...
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- اسم المحاضرة -->
+
+                <div style="margin-bottom:15px;">
+
+                    <label for="lectureTitle">
+                        اسم المحاضرة
+                    </label>
+
+                    <input
+                        type="text"
+                        id="lectureTitle"
+                        placeholder="مثال: المحاضرة الأولى"
+                        required
+                        style="
+                            width:100%;
+                            box-sizing:border-box;
+                            padding:12px;
+                            margin-top:8px;
+                        "
+                    >
+
+                </div>
+
+
+                <!-- التاريخ -->
+
+                <div style="margin-bottom:15px;">
+
+                    <label for="lectureDate">
+                        التاريخ
+                    </label>
+
+                    <input
+                        type="date"
+                        id="lectureDate"
+                        required
+                        style="
+                            width:100%;
+                            box-sizing:border-box;
+                            padding:12px;
+                            margin-top:8px;
+                        "
+                    >
+
+                </div>
+
+
+                <!-- وقت البداية -->
+
+                <div style="margin-bottom:15px;">
+
+                    <label for="startTime">
+                        وقت البداية
+                    </label>
+
+                    <input
+                        type="time"
+                        id="startTime"
+                        required
+                        style="
+                            width:100%;
+                            box-sizing:border-box;
+                            padding:12px;
+                            margin-top:8px;
+                        "
+                    >
+
+                </div>
+
+
+                <!-- وقت النهاية -->
+
+                <div style="margin-bottom:15px;">
+
+                    <label for="endTime">
+                        وقت النهاية
+                    </label>
+
+                    <input
+                        type="time"
+                        id="endTime"
+                        required
+                        style="
+                            width:100%;
+                            box-sizing:border-box;
+                            padding:12px;
+                            margin-top:8px;
+                        "
+                    >
+
+                </div>
+
+
+                <!-- القاعة -->
+
+                <div style="margin-bottom:15px;">
+
+                    <label for="hall">
+                        القاعة
+                    </label>
+
+                    <input
+                        type="text"
+                        id="hall"
+                        placeholder="مثال: قاعة 3"
+                        style="
+                            width:100%;
+                            box-sizing:border-box;
+                            padding:12px;
+                            margin-top:8px;
+                        "
+                    >
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    style="
+                        width:100%;
+                        padding:12px;
+                    "
+                >
+                    ➕ إضافة المحاضرة
+                </button>
+
+            </form>
+
+
+            <p
+                id="lectureMessage"
+                style="
+                    text-align:center;
+                    margin-top:15px;
+                "
+            ></p>
+
+        </section>
+
+
+        <!-- قائمة المحاضرات -->
+
+        <section class="dashboard-section">
+
+            <h2>
+                📚 محاضراتي
+            </h2>
+
+            <div id="lecturesList">
+
+                <p>
+                    جاري تحميل المحاضرات...
+                </p>
+
+            </div>
+
+        </section>
 
     </main>
 
