@@ -34,13 +34,80 @@
             </h1>
 
             <p>
-                المواد المسجّل فيها الطالب
+                أضف موادك الدراسية وجدولها الخاص بك
             </p>
 
         </section>
 
 
+        <!-- إضافة مادة -->
+
         <section class="dashboard-section">
+
+            <h2>
+                ➕ إضافة مادة جديدة
+            </h2>
+
+            <form id="addSubjectForm">
+
+                <div style="margin-bottom: 15px;">
+
+                    <label for="subjectName">
+                        اسم المادة
+                    </label>
+
+                    <input
+                        type="text"
+                        id="subjectName"
+                        placeholder="مثال: برمجة متقدمة"
+                        required
+                        style="width:100%; box-sizing:border-box; padding:12px; margin-top:8px;"
+                    >
+
+                </div>
+
+
+                <div style="margin-bottom: 15px;">
+
+                    <label for="subjectCode">
+                        كود المادة
+                    </label>
+
+                    <input
+                        type="text"
+                        id="subjectCode"
+                        placeholder="مثال: CS301"
+                        style="width:100%; box-sizing:border-box; padding:12px; margin-top:8px;"
+                    >
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    style="width:100%; padding:12px;"
+                >
+                    ➕ إضافة المادة
+                </button>
+
+            </form>
+
+
+            <p
+                id="subjectMessage"
+                style="text-align:center; margin-top:15px;"
+            ></p>
+
+        </section>
+
+
+        <!-- قائمة المواد -->
+
+        <section class="dashboard-section">
+
+            <h2>
+                📚 موادي
+            </h2>
 
             <div id="subjectsList">
 
