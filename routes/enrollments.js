@@ -1,3 +1,4 @@
+
 const express = require("express");
 const router = express.Router();
 
@@ -5,9 +6,10 @@ const db = require("../db");
 const authMiddleware = require("../middleware/auth");
 
 
-// =========================
-// التحقق من صلاحية الأدمن
-// =========================
+// =====================================
+// التحقق من صلاحية Admin
+// =====================================
+
 function adminOnly(req, res, next) {
 
     if (!req.user || req.user.role !== "admin") {
@@ -27,9 +29,10 @@ function adminOnly(req, res, next) {
 // ==================================================
 
 
-// =========================
-// جلب جميع تسجيلات الطلاب
-// =========================
+// =====================================
+// Admin - جلب جميع تسجيلات الطلاب
+// =====================================
+
 router.get(
     "/admin/all",
     authMiddleware,
@@ -48,8 +51,6 @@ router.get(
 
                     students.name AS student_name,
                     students.student_id AS student_number,
-                    students.student_id_number,
-                    students.student_number,
 
                     subjects.name AS subject_name,
                     subjects.code AS subject_code
@@ -86,9 +87,10 @@ router.get(
 );
 
 
-// =========================
-// تسجيل طالب في مادة - Admin
-// =========================
+// =====================================
+// Admin - تسجيل طالب في مادة
+// =====================================
+
 router.post(
     "/admin",
     authMiddleware,
@@ -100,8 +102,6 @@ router.post(
             const {
                 student_id,
                 subject_id,
-                academic_year,
-                semester,
                 status
             } = req.body;
 
@@ -124,6 +124,10 @@ router.post(
             }
 
 
+            // -----------------------------
+            // التأكد من وجود الطالب
+            // -----------------------------
+
             const student = await db.query(
                 `SELECT
                     id,
@@ -143,6 +147,10 @@ router.post(
 
             }
 
+
+            // -----------------------------
+            // التأكد من وجود المادة
+            // -----------------------------
 
             const subject = await db.query(
                 `SELECT
@@ -164,6 +172,20 @@ router.post(
             }
 
 
+            // -----------------------------
+            // تحديد حالة التسجيل
+            // -----------------------------
+
+            const enrollmentStatus =
+                status === "inactive"
+                    ? "inactive"
+                    : "active";
+
+
+            // -----------------------------
+            // البحث عن تسجيل سابق
+            // -----------------------------
+
             const existing = await db.query(
                 `SELECT
                     id,
@@ -178,47 +200,45 @@ router.post(
             );
 
 
-            const enrollmentStatus =
-                status === "inactive"
-                    ? "inactive"
-                    : "active";
-
-
-            // ==========================================
+            // =====================================
             // التسجيل موجود مسبقاً
-            // ==========================================
+            // =====================================
 
             if (existing.rows.length > 0) {
 
-                const restored =
-                    await db.query(
-                        `UPDATE public.enrollments
-                         SET status = $1
-                         WHERE id = $2
-                         RETURNING *`,
-                        [
-                            enrollmentStatus,
-                            existing.rows[0].id
-                        ]
-                    );
+                const updated = await db.query(
+                    `UPDATE public.enrollments
+
+                     SET status = $1
+
+                     WHERE id = $2
+
+                     RETURNING *`,
+                    [
+                        enrollmentStatus,
+                        existing.rows[0].id
+                    ]
+                );
 
 
                 return res.json({
 
                     message:
-                        "تم تحديث تسجيل الطالب بنجاح",
+                        enrollmentStatus === "active"
+                            ? "تم تسجيل الطالب في المادة بنجاح"
+                            : "تم إلغاء تسجيل الطالب في المادة",
 
                     enrollment:
-                        restored.rows[0]
+                        updated.rows[0]
 
                 });
 
             }
 
 
-            // ==========================================
-            // إضافة تسجيل جديد
-            // ==========================================
+            // =====================================
+            // إنشاء تسجيل جديد
+            // =====================================
 
             const result = await db.query(
                 `INSERT INTO public.enrollments
@@ -260,7 +280,6 @@ router.post(
                 error
             );
 
-
             res.status(500).json({
                 error: "Database error"
             });
@@ -271,9 +290,10 @@ router.post(
 );
 
 
-// =========================
-// حذف/إلغاء تسجيل - Admin
-// =========================
+// =====================================
+// Admin - إلغاء تسجيل
+// =====================================
+
 router.delete(
     "/admin/:id",
     authMiddleware,
@@ -282,18 +302,19 @@ router.delete(
 
         try {
 
-            const { id } =
-                req.params;
+            const { id } = req.params;
 
 
-            const result =
-                await db.query(
-                    `UPDATE public.enrollments
-                     SET status = 'inactive'
-                     WHERE id = $1
-                     RETURNING *`,
-                    [id]
-                );
+            const result = await db.query(
+                `UPDATE public.enrollments
+
+                 SET status = 'inactive'
+
+                 WHERE id = $1
+
+                 RETURNING *`,
+                [id]
+            );
 
 
             if (result.rows.length === 0) {
@@ -323,7 +344,6 @@ router.delete(
                 error
             );
 
-
             res.status(500).json({
                 error: "Database error"
             });
@@ -339,9 +359,10 @@ router.delete(
 // ==================================================
 
 
-// =========================
-// جلب مواد الطالب المسجل فيها
-// =========================
+// =====================================
+// الطالب - جلب مواده
+// =====================================
+
 router.get(
     "/",
     authMiddleware,
@@ -349,37 +370,34 @@ router.get(
 
         try {
 
-            const studentId =
-                req.user.id;
+            const studentId = req.user.id;
 
 
-            const result =
-                await db.query(
-                    `SELECT
-                        enrollments.id,
-                        enrollments.student_id,
-                        enrollments.subject_id,
-                        enrollments.status,
-                        enrollments.created_at,
+            const result = await db.query(
+                `SELECT
+                    enrollments.id,
+                    enrollments.student_id,
+                    enrollments.subject_id,
+                    enrollments.status,
+                    enrollments.created_at,
 
-                        subjects.name AS subject_name,
-                        subjects.code AS subject_code
+                    subjects.name AS subject_name,
+                    subjects.code AS subject_code
 
-                     FROM public.enrollments
+                 FROM public.enrollments
 
-                     JOIN public.subjects
-                        ON enrollments.subject_id = subjects.id
+                 JOIN public.subjects
+                    ON enrollments.subject_id = subjects.id
 
-                     WHERE enrollments.student_id = $1
+                 WHERE enrollments.student_id = $1
+                 AND enrollments.status = 'active'
 
-                     ORDER BY subjects.name`,
-                    [studentId]
-                );
-
-
-            res.json(
-                result.rows
+                 ORDER BY subjects.name`,
+                [studentId]
             );
+
+
+            res.json(result.rows);
 
 
         } catch (error) {
@@ -388,7 +406,6 @@ router.get(
                 "GET /enrollments error:",
                 error
             );
-
 
             res.status(500).json({
                 error: "Database error"
@@ -400,9 +417,10 @@ router.get(
 );
 
 
-// =========================
-// جلب تسجيل واحد للطالب
-// =========================
+// =====================================
+// الطالب - جلب تسجيل واحد
+// =====================================
+
 router.get(
     "/:id",
     authMiddleware,
@@ -410,37 +428,34 @@ router.get(
 
         try {
 
-            const { id } =
-                req.params;
+            const { id } = req.params;
 
-            const studentId =
-                req.user.id;
+            const studentId = req.user.id;
 
 
-            const result =
-                await db.query(
-                    `SELECT
-                        enrollments.id,
-                        enrollments.student_id,
-                        enrollments.subject_id,
-                        enrollments.status,
-                        enrollments.created_at,
+            const result = await db.query(
+                `SELECT
+                    enrollments.id,
+                    enrollments.student_id,
+                    enrollments.subject_id,
+                    enrollments.status,
+                    enrollments.created_at,
 
-                        subjects.name AS subject_name,
-                        subjects.code AS subject_code
+                    subjects.name AS subject_name,
+                    subjects.code AS subject_code
 
-                     FROM public.enrollments
+                 FROM public.enrollments
 
-                     JOIN public.subjects
-                        ON enrollments.subject_id = subjects.id
+                 JOIN public.subjects
+                    ON enrollments.subject_id = subjects.id
 
-                     WHERE enrollments.id = $1
-                     AND enrollments.student_id = $2`,
-                    [
-                        id,
-                        studentId
-                    ]
-                );
+                 WHERE enrollments.id = $1
+                 AND enrollments.student_id = $2`,
+                [
+                    id,
+                    studentId
+                ]
+            );
 
 
             if (result.rows.length === 0) {
@@ -453,9 +468,7 @@ router.get(
             }
 
 
-            res.json(
-                result.rows[0]
-            );
+            res.json(result.rows[0]);
 
 
         } catch (error) {
@@ -464,7 +477,6 @@ router.get(
                 "GET /enrollments/:id error:",
                 error
             );
-
 
             res.status(500).json({
                 error: "Database error"
@@ -476,9 +488,10 @@ router.get(
 );
 
 
-// =========================
-// تسجيل الطالب في مادة
-// =========================
+// =====================================
+// الطالب - التسجيل في مادة
+// =====================================
+
 router.post(
     "/",
     authMiddleware,
@@ -486,11 +499,9 @@ router.post(
 
         try {
 
-            const { subject_id } =
-                req.body;
+            const { subject_id } = req.body;
 
-            const studentId =
-                req.user.id;
+            const studentId = req.user.id;
 
 
             if (!subject_id) {
@@ -502,18 +513,21 @@ router.post(
             }
 
 
-            const subject =
-                await db.query(
-                    `SELECT
-                        id,
-                        name,
-                        code
+            // -----------------------------
+            // التأكد من وجود المادة
+            // -----------------------------
 
-                     FROM public.subjects
+            const subject = await db.query(
+                `SELECT
+                    id,
+                    name,
+                    code
 
-                     WHERE id = $1`,
-                    [subject_id]
-                );
+                 FROM public.subjects
+
+                 WHERE id = $1`,
+                [subject_id]
+            );
 
 
             if (subject.rows.length === 0) {
@@ -525,22 +539,29 @@ router.post(
             }
 
 
-            const existing =
-                await db.query(
-                    `SELECT
-                        id,
-                        status
+            // -----------------------------
+            // البحث عن تسجيل سابق
+            // -----------------------------
 
-                     FROM public.enrollments
+            const existing = await db.query(
+                `SELECT
+                    id,
+                    status
 
-                     WHERE student_id = $1
-                     AND subject_id = $2`,
-                    [
-                        studentId,
-                        subject_id
-                    ]
-                );
+                 FROM public.enrollments
 
+                 WHERE student_id = $1
+                 AND subject_id = $2`,
+                [
+                    studentId,
+                    subject_id
+                ]
+            );
+
+
+            // =====================================
+            // يوجد تسجيل سابق
+            // =====================================
 
             if (existing.rows.length > 0) {
 
@@ -557,16 +578,20 @@ router.post(
                 }
 
 
-                const restored =
-                    await db.query(
-                        `UPDATE public.enrollments
-                         SET status = 'active'
-                         WHERE id = $1
-                         RETURNING *`,
-                        [
-                            existing.rows[0].id
-                        ]
-                    );
+                // إعادة تفعيل التسجيل
+
+                const restored = await db.query(
+                    `UPDATE public.enrollments
+
+                     SET status = 'active'
+
+                     WHERE id = $1
+
+                     RETURNING *`,
+                    [
+                        existing.rows[0].id
+                    ]
+                );
 
 
                 return res.status(201).json({
@@ -582,26 +607,29 @@ router.post(
             }
 
 
-            const result =
-                await db.query(
-                    `INSERT INTO public.enrollments
-                    (
-                        student_id,
-                        subject_id,
-                        status
-                    )
-                    VALUES
-                    (
-                        $1,
-                        $2,
-                        'active'
-                    )
-                    RETURNING *`,
-                    [
-                        studentId,
-                        subject_id
-                    ]
-                );
+            // =====================================
+            // تسجيل جديد
+            // =====================================
+
+            const result = await db.query(
+                `INSERT INTO public.enrollments
+                (
+                    student_id,
+                    subject_id,
+                    status
+                )
+                VALUES
+                (
+                    $1,
+                    $2,
+                    'active'
+                )
+                RETURNING *`,
+                [
+                    studentId,
+                    subject_id
+                ]
+            );
 
 
             res.status(201).json({
@@ -622,7 +650,6 @@ router.post(
                 error
             );
 
-
             res.status(500).json({
                 error: "Database error"
             });
@@ -633,9 +660,10 @@ router.post(
 );
 
 
-// =========================
-// إلغاء تسجيل الطالب من مادة
-// =========================
+// =====================================
+// الطالب - إلغاء التسجيل
+// =====================================
+
 router.delete(
     "/:id",
     authMiddleware,
@@ -643,27 +671,25 @@ router.delete(
 
         try {
 
-            const { id } =
-                req.params;
+            const { id } = req.params;
 
-            const studentId =
-                req.user.id;
+            const studentId = req.user.id;
 
 
-            const result =
-                await db.query(
-                    `UPDATE public.enrollments
-                     SET status = 'inactive'
+            const result = await db.query(
+                `UPDATE public.enrollments
 
-                     WHERE id = $1
-                     AND student_id = $2
+                 SET status = 'inactive'
 
-                     RETURNING *`,
-                    [
-                        id,
-                        studentId
-                    ]
-                );
+                 WHERE id = $1
+                 AND student_id = $2
+
+                 RETURNING *`,
+                [
+                    id,
+                    studentId
+                ]
+            );
 
 
             if (result.rows.length === 0) {
@@ -693,7 +719,6 @@ router.delete(
                 "DELETE /enrollments/:id error:",
                 error
             );
-
 
             res.status(500).json({
                 error: "Database error"
