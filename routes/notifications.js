@@ -1,3 +1,4 @@
+
 const express = require("express");
 const router = express.Router();
 
@@ -5,9 +6,9 @@ const db = require("../db");
 const authMiddleware = require("../middleware/auth");
 
 
-// =========================
-// جلب إشعارات الطالب
-// =========================
+// =====================================================
+// جلب إشعارات الطالب الحالي فقط
+// =====================================================
 router.get("/", authMiddleware, async (req, res) => {
     try {
         const studentId = req.user.id;
@@ -15,6 +16,7 @@ router.get("/", authMiddleware, async (req, res) => {
         const result = await db.query(
             `SELECT
                 notifications.id,
+                notifications.student_id,
                 notifications.title,
                 notifications.message,
                 notifications.is_read,
@@ -22,7 +24,9 @@ router.get("/", authMiddleware, async (req, res) => {
                 notifications.lecture_id,
                 lectures.title AS lecture_title,
                 lectures.lecture_date,
-                lectures.start_time
+                lectures.start_time,
+                lectures.end_time,
+                lectures.hall
              FROM public.notifications
              LEFT JOIN public.lectures
                 ON notifications.lecture_id = lectures.id
@@ -43,9 +47,9 @@ router.get("/", authMiddleware, async (req, res) => {
 });
 
 
-// =========================
-// عدد الإشعارات غير المقروءة
-// =========================
+// =====================================================
+// عدد الإشعارات غير المقروءة للطالب الحالي فقط
+// =====================================================
 router.get("/unread-count", authMiddleware, async (req, res) => {
     try {
         const studentId = req.user.id;
@@ -63,7 +67,10 @@ router.get("/unread-count", authMiddleware, async (req, res) => {
         });
 
     } catch (error) {
-        console.error("GET /notifications/unread-count error:", error);
+        console.error(
+            "GET /notifications/unread-count error:",
+            error
+        );
 
         res.status(500).json({
             error: "Database error"
@@ -72,9 +79,9 @@ router.get("/unread-count", authMiddleware, async (req, res) => {
 });
 
 
-// =========================
-// تعليم إشعار كمقروء
-// =========================
+// =====================================================
+// تعليم إشعار واحد كمقروء
+// =====================================================
 router.put("/:id/read", authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
@@ -101,7 +108,10 @@ router.put("/:id/read", authMiddleware, async (req, res) => {
         });
 
     } catch (error) {
-        console.error("PUT /notifications/:id/read error:", error);
+        console.error(
+            "PUT /notifications/:id/read error:",
+            error
+        );
 
         res.status(500).json({
             error: "Database error"
@@ -110,9 +120,9 @@ router.put("/:id/read", authMiddleware, async (req, res) => {
 });
 
 
-// =========================
-// تعليم كل الإشعارات كمقروءة
-// =========================
+// =====================================================
+// تعليم كل إشعارات الطالب الحالي كمقروءة
+// =====================================================
 router.put("/read-all", authMiddleware, async (req, res) => {
     try {
         const studentId = req.user.id;
@@ -132,7 +142,10 @@ router.put("/read-all", authMiddleware, async (req, res) => {
         });
 
     } catch (error) {
-        console.error("PUT /notifications/read-all error:", error);
+        console.error(
+            "PUT /notifications/read-all error:",
+            error
+        );
 
         res.status(500).json({
             error: "Database error"
@@ -141,9 +154,9 @@ router.put("/read-all", authMiddleware, async (req, res) => {
 });
 
 
-// =========================
-// حذف إشعار
-// =========================
+// =====================================================
+// حذف إشعار للطالب الحالي فقط
+// =====================================================
 router.delete("/:id", authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
@@ -169,7 +182,10 @@ router.delete("/:id", authMiddleware, async (req, res) => {
         });
 
     } catch (error) {
-        console.error("DELETE /notifications/:id error:", error);
+        console.error(
+            "DELETE /notifications/:id error:",
+            error
+        );
 
         res.status(500).json({
             error: "Database error"
@@ -178,4 +194,7 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 });
 
 
+// =====================================================
+// تصدير الراوتر
+// =====================================================
 module.exports = router;
