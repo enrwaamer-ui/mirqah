@@ -11,9 +11,21 @@ const subjectSelect = document.getElementById("subjectId");
 const lectureMessage = document.getElementById("lectureMessage");
 
 
-// ==========================================
-// تحميل المواد الخاصة بالطالب
-// ==========================================
+/* =========================
+   تسجيل الخروج
+========================= */
+
+function logout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("student");
+
+    window.location.href = "index.html";
+}
+
+
+/* =========================
+   تحميل المواد
+========================= */
 
 async function loadSubjects() {
 
@@ -37,9 +49,11 @@ async function loadSubjects() {
             }
 
             throw new Error(
-                data.error || "حدث خطأ في تحميل المواد"
+                data.error ||
+                "حدث خطأ في تحميل المواد"
             );
         }
+
 
         subjectSelect.innerHTML = `
             <option value="">
@@ -68,7 +82,11 @@ async function loadSubjects() {
             option.value = subject.id;
 
             option.textContent =
-                `${subject.name}${subject.code ? ` - ${subject.code}` : ""}`;
+                `${subject.name}${
+                    subject.code
+                        ? ` - ${subject.code}`
+                        : ""
+                }`;
 
             subjectSelect.appendChild(option);
 
@@ -90,9 +108,9 @@ async function loadSubjects() {
 }
 
 
-// ==========================================
-// تحميل محاضرات الطالب
-// ==========================================
+/* =========================
+   تحميل المحاضرات
+========================= */
 
 async function loadLectures() {
 
@@ -105,16 +123,19 @@ async function loadLectures() {
         `;
 
 
-        const response = await fetch("/lectures", {
-            method: "GET",
+        const response =
+            await fetch("/lectures", {
+                method: "GET",
 
-            headers: {
-                "Authorization": `Bearer ${token}`
-            }
-        });
+                headers: {
+                    "Authorization":
+                        `Bearer ${token}`
+                }
+            });
 
 
-        const data = await response.json();
+        const data =
+            await response.json();
 
 
         if (!response.ok) {
@@ -162,14 +183,11 @@ async function loadLectures() {
             const card =
                 document.createElement("div");
 
-
             card.className =
                 "dashboard-card";
 
-
             card.style.marginBottom =
                 "15px";
-
 
             card.style.textAlign =
                 "right";
@@ -178,68 +196,79 @@ async function loadLectures() {
             card.innerHTML = `
 
                 <h2>
-                    📚 ${escapeHtml(
-                        lecture.subject_name ||
-                        "بدون مادة"
-                    )}
+                    📚 ${
+                        escapeHtml(
+                            lecture.subject_name ||
+                            "بدون مادة"
+                        )
+                    }
                 </h2>
-
 
                 <p>
                     📝 المحاضرة:
-                    ${escapeHtml(
-                        lecture.title ||
-                        "غير محدد"
-                    )}
+                    ${
+                        escapeHtml(
+                            lecture.title ||
+                            "غير محدد"
+                        )
+                    }
                 </p>
-
 
                 <p>
                     📅 التاريخ:
-                    ${formatDate(
-                        lecture.lecture_date
-                    )}
+                    ${
+                        formatDate(
+                            lecture.lecture_date
+                        )
+                    }
                 </p>
-
 
                 <p>
                     ⏰ الوقت:
-                    ${formatTime(
-                        lecture.start_time
-                    )}
-                    -
-                    ${formatTime(
-                        lecture.end_time
-                    )}
-                </p>
+                    ${
+                        formatTime(
+                            lecture.start_time
+                        )
+                    }
 
+                    -
+
+                    ${
+                        formatTime(
+                            lecture.end_time
+                        )
+                    }
+                </p>
 
                 <p>
                     🏫 القاعة:
-                    ${escapeHtml(
-                        lecture.hall ||
-                        "غير محددة"
-                    )}
+                    ${
+                        escapeHtml(
+                            lecture.hall ||
+                            "غير محددة"
+                        )
+                    }
                 </p>
-
 
                 <p>
                     👨‍🏫 المدرس:
-                    ${escapeHtml(
-                        lecture.instructor ||
-                        "غير محدد"
-                    )}
+                    ${
+                        escapeHtml(
+                            lecture.instructor ||
+                            "غير محدد"
+                        )
+                    }
                 </p>
-
 
                 <p>
                     🔢 كود المادة:
-                    ${escapeHtml(
-                        lecture.subject_code ||
-                        "غير محدد"
-                    )}
+                    ${
+                        escapeHtml(
+                            lecture.subject_code ||
+                            "غير محدد"
+                        )
+                    }
                 </p>
-
 
                 <div
                     style="
@@ -257,7 +286,6 @@ async function loadLectures() {
                         ✏️ تعديل
                     </button>
 
-
                     <button
                         type="button"
                         onclick="deleteLecture(${lecture.id})"
@@ -268,7 +296,6 @@ async function loadLectures() {
                 </div>
 
             `;
-
 
             lecturesList.appendChild(card);
 
@@ -281,19 +308,27 @@ async function loadLectures() {
             error
         );
 
-
         lecturesList.innerHTML = `
-            <p style="text-align:center;">
-                ${escapeHtml(error.message)}
+            <p
+                style="
+                    text-align:center;
+                    color:red;
+                "
+            >
+                ${
+                    escapeHtml(
+                        error.message
+                    )
+                }
             </p>
         `;
     }
 }
 
 
-// ==========================================
-// إضافة محاضرة
-// ==========================================
+/* =========================
+   إضافة محاضرة
+========================= */
 
 if (addLectureForm) {
 
@@ -304,9 +339,13 @@ if (addLectureForm) {
             event.preventDefault();
 
 
+            /* المادة */
+
             const subjectId =
                 subjectSelect.value;
 
+
+            /* اسم المحاضرة */
 
             const title =
                 document.getElementById(
@@ -314,11 +353,15 @@ if (addLectureForm) {
                 ).value.trim();
 
 
+            /* التاريخ */
+
             const lectureDate =
                 document.getElementById(
                     "lectureDate"
                 ).value;
 
+
+            /* وقت البداية */
 
             const startTime =
                 document.getElementById(
@@ -326,17 +369,23 @@ if (addLectureForm) {
                 ).value;
 
 
+            /* وقت النهاية */
+
             const endTime =
                 document.getElementById(
                     "endTime"
                 ).value;
 
 
+            /* القاعة */
+
             const hall =
                 document.getElementById(
                     "hall"
                 ).value.trim();
 
+
+            /* التحقق */
 
             if (
                 !subjectId ||
@@ -369,38 +418,44 @@ if (addLectureForm) {
             try {
 
                 const response =
-                    await fetch("/lectures", {
+                    await fetch(
+                        "/lectures",
+                        {
+                            method: "POST",
 
-                        method: "POST",
+                            headers: {
+                                "Content-Type":
+                                    "application/json",
 
-                        headers: {
+                                "Authorization":
+                                    `Bearer ${token}`
+                            },
 
-                            "Content-Type":
-                                "application/json",
+                            body:
+                                JSON.stringify({
 
-                            "Authorization":
-                                `Bearer ${token}`
+                                    subject_id:
+                                        Number(
+                                            subjectId
+                                        ),
 
-                        },
+                                    title:
+                                        title,
 
-                        body: JSON.stringify({
+                                    lecture_date:
+                                        lectureDate,
 
-                            subject_id:
-                                Number(subjectId),
+                                    start_time:
+                                        startTime,
 
-                            title,
+                                    end_time:
+                                        endTime,
 
-                            lecture_date,
-
-                            start_time,
-
-                            end_time,
-
-                            hall
-
-                        })
-
-                    });
+                                    hall:
+                                        hall
+                                })
+                        }
+                    );
 
 
                 const data =
@@ -409,7 +464,9 @@ if (addLectureForm) {
 
                 if (!response.ok) {
 
-                    if (response.status === 401) {
+                    if (
+                        response.status === 401
+                    ) {
                         logout();
                         return;
                     }
@@ -440,7 +497,6 @@ if (addLectureForm) {
                     error
                 );
 
-
                 lectureMessage.textContent =
                     error.message;
             }
@@ -450,9 +506,9 @@ if (addLectureForm) {
 }
 
 
-// ==========================================
-// تعديل محاضرة
-// ==========================================
+/* =========================
+   تعديل المحاضرة
+========================= */
 
 window.editLecture =
     async function (lectureId) {
@@ -479,7 +535,9 @@ window.editLecture =
 
             if (!response.ok) {
 
-                if (response.status === 401) {
+                if (
+                    response.status === 401
+                ) {
                     logout();
                     return;
                 }
@@ -490,6 +548,8 @@ window.editLecture =
                 );
             }
 
+
+            /* اسم المحاضرة */
 
             const newTitle =
                 prompt(
@@ -502,6 +562,8 @@ window.editLecture =
                 return;
             }
 
+
+            /* التاريخ */
 
             const newDate =
                 prompt(
@@ -517,6 +579,8 @@ window.editLecture =
             }
 
 
+            /* وقت البداية */
+
             const newStart =
                 prompt(
                     "وقت البداية بصيغة HH:MM:",
@@ -530,6 +594,8 @@ window.editLecture =
                 return;
             }
 
+
+            /* وقت النهاية */
 
             const newEnd =
                 prompt(
@@ -545,6 +611,8 @@ window.editLecture =
             }
 
 
+            /* القاعة */
+
             const newHall =
                 prompt(
                     "القاعة:",
@@ -557,6 +625,19 @@ window.editLecture =
             }
 
 
+            if (
+                newStart.trim() >=
+                newEnd.trim()
+            ) {
+
+                alert(
+                    "وقت النهاية لازم يكون بعد وقت البداية."
+                );
+
+                return;
+            }
+
+
             const responseUpdate =
                 await fetch(
                     `/lectures/${lectureId}`,
@@ -564,39 +645,38 @@ window.editLecture =
                         method: "PUT",
 
                         headers: {
-
                             "Content-Type":
                                 "application/json",
 
                             "Authorization":
                                 `Bearer ${token}`
-
                         },
 
-                        body: JSON.stringify({
+                        body:
+                            JSON.stringify({
 
-                            subject_id:
-                                lecture.subject_id,
+                                subject_id:
+                                    lecture.subject_id,
 
-                            title:
-                                newTitle.trim(),
+                                title:
+                                    newTitle.trim(),
 
-                            lecture_date:
-                                newDate.trim(),
+                                lecture_date:
+                                    newDate.trim(),
 
-                            start_time:
-                                newStart.trim(),
+                                start_time:
+                                    newStart.trim(),
 
-                            end_time:
-                                newEnd.trim(),
+                                end_time:
+                                    newEnd.trim(),
 
-                            hall:
-                                newHall.trim(),
+                                hall:
+                                    newHall.trim(),
 
-                            instructor:
-                                lecture.instructor || ""
-
-                        })
+                                instructor:
+                                    lecture.instructor ||
+                                    ""
+                            })
                     }
                 );
 
@@ -607,7 +687,9 @@ window.editLecture =
 
             if (!responseUpdate.ok) {
 
-                if (responseUpdate.status === 401) {
+                if (
+                    responseUpdate.status === 401
+                ) {
                     logout();
                     return;
                 }
@@ -634,16 +716,16 @@ window.editLecture =
                 error
             );
 
-
-            alert(error.message);
+            alert(
+                error.message
+            );
         }
-
     };
 
 
-// ==========================================
-// حذف محاضرة
-// ==========================================
+/* =========================
+   حذف المحاضرة
+========================= */
 
 window.deleteLecture =
     async function (lectureId) {
@@ -681,7 +763,9 @@ window.deleteLecture =
 
             if (!response.ok) {
 
-                if (response.status === 401) {
+                if (
+                    response.status === 401
+                ) {
                     logout();
                     return;
                 }
@@ -708,16 +792,16 @@ window.deleteLecture =
                 error
             );
 
-
-            alert(error.message);
+            alert(
+                error.message
+            );
         }
-
     };
 
 
-// ==========================================
-// تنسيق التاريخ
-// ==========================================
+/* =========================
+   تنسيق التاريخ
+========================= */
 
 function formatDate(dateValue) {
 
@@ -731,7 +815,7 @@ function formatDate(dateValue) {
 
 
     if (isNaN(date.getTime())) {
-        return dateValue;
+        return String(dateValue);
     }
 
 
@@ -746,9 +830,9 @@ function formatDate(dateValue) {
 }
 
 
-// ==========================================
-// تنسيق التاريخ للإدخال
-// ==========================================
+/* =========================
+   تجهيز التاريخ للتعديل
+========================= */
 
 function formatInputDate(dateValue) {
 
@@ -757,12 +841,25 @@ function formatInputDate(dateValue) {
     }
 
 
+    const value =
+        String(dateValue);
+
+
+    if (
+        /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ) {
+        return value;
+    }
+
+
     const date =
-        new Date(dateValue);
+        new Date(value);
 
 
     if (isNaN(date.getTime())) {
-        return String(dateValue).split("T")[0];
+
+        return value
+            .split("T")[0];
     }
 
 
@@ -786,9 +883,9 @@ function formatInputDate(dateValue) {
 }
 
 
-// ==========================================
-// تنسيق الوقت
-// ==========================================
+/* =========================
+   تنسيق الوقت للعرض
+========================= */
 
 function formatTime(timeValue) {
 
@@ -802,7 +899,7 @@ function formatTime(timeValue) {
 
 
     if (parts.length < 2) {
-        return timeValue;
+        return String(timeValue);
     }
 
 
@@ -815,7 +912,7 @@ function formatTime(timeValue) {
 
 
     if (isNaN(hour)) {
-        return timeValue;
+        return String(timeValue);
     }
 
 
@@ -831,9 +928,9 @@ function formatTime(timeValue) {
 }
 
 
-// ==========================================
-// تنسيق الوقت للإدخال
-// ==========================================
+/* =========================
+   تجهيز الوقت للتعديل
+========================= */
 
 function formatInputTime(timeValue) {
 
@@ -847,38 +944,39 @@ function formatInputTime(timeValue) {
 }
 
 
-// ==========================================
-// حماية النصوص
-// ==========================================
+/* =========================
+   حماية النصوص
+========================= */
 
 function escapeHtml(value) {
 
     return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
 }
 
 
-// ==========================================
-// تسجيل الخروج
-// ==========================================
-
-function logout() {
-
-    localStorage.removeItem("token");
-    localStorage.removeItem("student");
-
-    window.location.href =
-        "index.html";
-}
-
-
-// ==========================================
-// الرجوع للرئيسية
-// ==========================================
+/* =========================
+   العودة للرئيسية
+========================= */
 
 function goBack() {
 
@@ -887,9 +985,9 @@ function goBack() {
 }
 
 
-// ==========================================
-// تشغيل الصفحة
-// ==========================================
+/* =========================
+   تشغيل الصفحة
+========================= */
 
 loadSubjects();
 loadLectures();
