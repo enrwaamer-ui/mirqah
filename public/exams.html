@@ -30,11 +30,169 @@
 
     <main class="dashboard">
 
-        <h1>
-            الامتحانات 📝
-        </h1>
+        <section class="welcome-card">
 
-        <div id="examsList"></div>
+            <h1>
+                📝 الامتحانات
+            </h1>
+
+            <p>
+                أضف مواعيد امتحانات موادك
+            </p>
+
+        </section>
+
+
+        <!-- إضافة امتحان -->
+
+        <section class="dashboard-section">
+
+            <h2>
+                ➕ إضافة امتحان
+            </h2>
+
+
+            <form id="addExamForm">
+
+
+                <!-- المادة -->
+
+                <div style="margin-bottom:15px;">
+
+                    <label for="subjectId">
+                        المادة
+                    </label>
+
+                    <select
+                        id="subjectId"
+                        required
+                        style="
+                            width:100%;
+                            box-sizing:border-box;
+                            padding:12px;
+                            margin-top:8px;
+                        "
+                    >
+
+                        <option value="">
+                            جاري تحميل المواد...
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- التاريخ -->
+
+                <div style="margin-bottom:15px;">
+
+                    <label for="examDate">
+                        تاريخ الامتحان
+                    </label>
+
+                    <input
+                        type="date"
+                        id="examDate"
+                        required
+                        style="
+                            width:100%;
+                            box-sizing:border-box;
+                            padding:12px;
+                            margin-top:8px;
+                        "
+                    >
+
+                </div>
+
+
+                <!-- وقت البداية -->
+
+                <div style="margin-bottom:15px;">
+
+                    <label for="startTime">
+                        وقت الامتحان
+                    </label>
+
+                    <input
+                        type="time"
+                        id="startTime"
+                        required
+                        style="
+                            width:100%;
+                            box-sizing:border-box;
+                            padding:12px;
+                            margin-top:8px;
+                        "
+                    >
+
+                </div>
+
+
+                <!-- القاعة -->
+
+                <div style="margin-bottom:15px;">
+
+                    <label for="hall">
+                        القاعة
+                    </label>
+
+                    <input
+                        type="text"
+                        id="hall"
+                        placeholder="مثال: قاعة 3"
+                        style="
+                            width:100%;
+                            box-sizing:border-box;
+                            padding:12px;
+                            margin-top:8px;
+                        "
+                    >
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    style="
+                        width:100%;
+                        padding:12px;
+                    "
+                >
+                    ➕ إضافة الامتحان
+                </button>
+
+            </form>
+
+
+            <p
+                id="examMessage"
+                style="
+                    text-align:center;
+                    margin-top:15px;
+                "
+            ></p>
+
+        </section>
+
+
+        <!-- قائمة الامتحانات -->
+
+        <section class="dashboard-section">
+
+            <h2>
+                📚 امتحاناتي
+            </h2>
+
+            <div id="examsList">
+
+                <p style="text-align:center;">
+                    جاري تحميل الامتحانات...
+                </p>
+
+            </div>
+
+        </section>
 
     </main>
 
