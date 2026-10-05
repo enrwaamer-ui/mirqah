@@ -154,36 +154,74 @@
 
     <header class="topbar">
         <div class="logo-small">مِرقاة</div>
-        <a href="dashboard.html">الرئيسية</a>
+
+        <a href="dashboard.html">
+            الرئيسية
+        </a>
     </header>
+
 
     <main class="dashboard">
 
+        <!-- ===================================== -->
+        <!-- عنوان الصفحة -->
+        <!-- ===================================== -->
+
         <section class="welcome-card">
+
             <h1>📚 المحاضرات</h1>
-            <p>نظّم محاضراتك حسب اليوم والوقت</p>
+
+            <p>
+                نظّم محاضراتك حسب اليوم والوقت
+            </p>
+
         </section>
+
+
+        <!-- ===================================== -->
+        <!-- إضافة محاضرة -->
+        <!-- ===================================== -->
 
         <section class="dashboard-section">
 
             <h2>➕ إضافة محاضرة</h2>
 
+
             <form id="addLectureForm">
 
+
+                <!-- المادة -->
+
                 <div style="margin-bottom:15px;">
-                    <label for="subjectId">المادة</label>
+
+                    <label for="subjectId">
+                        المادة
+                    </label>
+
 
                     <select
                         id="subjectId"
                         required
                         style="width:100%; box-sizing:border-box; padding:12px; margin-top:8px;"
                     >
-                        <option value="">جاري تحميل المواد...</option>
+
+                        <option value="">
+                            جاري تحميل المواد...
+                        </option>
+
                     </select>
+
                 </div>
 
+
+                <!-- اسم المحاضرة -->
+
                 <div style="margin-bottom:15px;">
-                    <label for="lectureTitle">اسم المحاضرة</label>
+
+                    <label for="lectureTitle">
+                        اسم المحاضرة
+                    </label>
+
 
                     <input
                         type="text"
@@ -192,23 +230,83 @@
                         required
                         style="width:100%; box-sizing:border-box; padding:12px; margin-top:8px;"
                     >
+
                 </div>
 
-                <div style="margin-bottom:15px;">
-                    <label for="lectureDate">التاريخ</label>
 
-                    <input
-                        type="date"
-                        id="lectureDate"
+                <!-- يوم الأسبوع -->
+
+                <div style="margin-bottom:15px;">
+
+                    <label for="dayOfWeek">
+                        يوم الأسبوع
+                    </label>
+
+
+                    <select
+                        id="dayOfWeek"
                         required
                         style="width:100%; box-sizing:border-box; padding:12px; margin-top:8px;"
                     >
+
+                        <option value="">
+                            اختر يوم الأسبوع
+                        </option>
+
+
+                        <option value="Saturday">
+                            السبت
+                        </option>
+
+
+                        <option value="Sunday">
+                            الأحد
+                        </option>
+
+
+                        <option value="Monday">
+                            الاثنين
+                        </option>
+
+
+                        <option value="Tuesday">
+                            الثلاثاء
+                        </option>
+
+
+                        <option value="Wednesday">
+                            الأربعاء
+                        </option>
+
+
+                        <option value="Thursday">
+                            الخميس
+                        </option>
+
+
+                        <option value="Friday">
+                            الجمعة
+                        </option>
+
+                    </select>
+
                 </div>
 
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+
+                <!-- الوقت -->
+
+                <div
+                    style="display:grid; grid-template-columns:1fr 1fr; gap:10px;"
+                >
+
+                    <!-- وقت البداية -->
 
                     <div style="margin-bottom:15px;">
-                        <label for="startTime">من</label>
+
+                        <label for="startTime">
+                            من
+                        </label>
+
 
                         <input
                             type="time"
@@ -216,10 +314,18 @@
                             required
                             style="width:100%; box-sizing:border-box; padding:12px; margin-top:8px;"
                         >
+
                     </div>
 
+
+                    <!-- وقت النهاية -->
+
                     <div style="margin-bottom:15px;">
-                        <label for="endTime">إلى</label>
+
+                        <label for="endTime">
+                            إلى
+                        </label>
+
 
                         <input
                             type="time"
@@ -227,12 +333,20 @@
                             required
                             style="width:100%; box-sizing:border-box; padding:12px; margin-top:8px;"
                         >
+
                     </div>
 
                 </div>
 
+
+                <!-- القاعة -->
+
                 <div style="margin-bottom:15px;">
-                    <label for="hall">القاعة</label>
+
+                    <label for="hall">
+                        القاعة
+                    </label>
+
 
                     <input
                         type="text"
@@ -240,7 +354,11 @@
                         placeholder="مثال: قاعة 3"
                         style="width:100%; box-sizing:border-box; padding:12px; margin-top:8px;"
                     >
+
                 </div>
+
+
+                <!-- زر الإضافة -->
 
                 <button
                     type="submit"
@@ -249,22 +367,38 @@
                     ➕ إضافة المحاضرة
                 </button>
 
+
             </form>
+
+
+            <!-- رسالة العملية -->
 
             <p
                 id="lectureMessage"
                 style="text-align:center; margin-top:15px;"
             ></p>
 
+
         </section>
+
+
+        <!-- ===================================== -->
+        <!-- جدول المحاضرات -->
+        <!-- ===================================== -->
 
         <section class="dashboard-section">
 
+
             <div class="schedule-header">
 
-                <h2>🗓️ جدول المحاضرات</h2>
+
+                <h2>
+                    🗓️ جدول المحاضرات
+                </h2>
+
 
                 <div class="week-controls">
+
 
                     <button
                         type="button"
@@ -273,12 +407,14 @@
                         ◀ الأسبوع السابق
                     </button>
 
+
                     <button
                         type="button"
                         id="todayBtn"
                     >
                         اليوم
                     </button>
+
 
                     <button
                         type="button"
@@ -287,65 +423,142 @@
                         الأسبوع التالي ▶
                     </button>
 
+
                 </div>
 
+
             </div>
+
+
+            <!-- نطاق الأسبوع -->
 
             <div
                 id="weekTitle"
                 class="week-title"
             ></div>
 
+
+            <!-- الجدول -->
+
             <div class="schedule-wrapper">
 
                 <table class="schedule-table">
 
                     <thead>
+
                         <tr>
+
+                            <!-- الوقت -->
 
                             <th class="time-column">
                                 الوقت
                             </th>
 
+
+                            <!-- السبت -->
+
                             <th>
+
                                 السبت
-                                <div class="day-date" id="date-6"></div>
+
+                                <div
+                                    class="day-date"
+                                    id="date-6"
+                                ></div>
+
                             </th>
 
+
+                            <!-- الأحد -->
+
                             <th>
+
                                 الأحد
-                                <div class="day-date" id="date-0"></div>
+
+                                <div
+                                    class="day-date"
+                                    id="date-0"
+                                ></div>
+
                             </th>
 
+
+                            <!-- الاثنين -->
+
                             <th>
+
                                 الاثنين
-                                <div class="day-date" id="date-1"></div>
+
+                                <div
+                                    class="day-date"
+                                    id="date-1"
+                                ></div>
+
                             </th>
 
+
+                            <!-- الثلاثاء -->
+
                             <th>
+
                                 الثلاثاء
-                                <div class="day-date" id="date-2"></div>
+
+                                <div
+                                    class="day-date"
+                                    id="date-2"
+                                ></div>
+
                             </th>
 
+
+                            <!-- الأربعاء -->
+
                             <th>
+
                                 الأربعاء
-                                <div class="day-date" id="date-3"></div>
+
+                                <div
+                                    class="day-date"
+                                    id="date-3"
+                                ></div>
+
                             </th>
 
+
+                            <!-- الخميس -->
+
                             <th>
+
                                 الخميس
-                                <div class="day-date" id="date-4"></div>
+
+                                <div
+                                    class="day-date"
+                                    id="date-4"
+                                ></div>
+
                             </th>
 
+
+                            <!-- الجمعة -->
+
                             <th>
+
                                 الجمعة
-                                <div class="day-date" id="date-5"></div>
+
+                                <div
+                                    class="day-date"
+                                    id="date-5"
+                                ></div>
+
                             </th>
 
                         </tr>
+
                     </thead>
 
+
                     <tbody id="scheduleBody">
+
                     </tbody>
 
                 </table>
@@ -355,6 +568,7 @@
         </section>
 
     </main>
+
 
     <script src="lectures.js"></script>
 
