@@ -5,8 +5,10 @@ const studentsRouter = require("./routes/students");
 const subjectsRouter = require("./routes/subjects");
 const lecturesRouter = require("./routes/lectures");
 const enrollmentsRouter = require("./routes/enrollments");
+const weeklyScheduleRouter = require("./routes/weeklySchedule");
 const examsRouter = require("./routes/exams");
 const notificationsRouter = require("./routes/notifications");
+const pushSubscriptionsRouter = require("./routes/pushSubscriptions");
 
 require("./notificationsScheduler");
 
@@ -147,6 +149,53 @@ async function initDb() {
         `);
 
         // =========================
+        // WEEKLY SCHEDULE
+        // =========================
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS weekly_schedule (
+                id SERIAL PRIMARY KEY,
+                subject_id INTEGER NOT NULL,
+                day_of_week VARCHAR(20) NOT NULL,
+                start_time TIME NOT NULL,
+                end_time TIME NOT NULL,
+                room VARCHAR(255),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
+        // في حالة كان الجدول موجود من قبل
+        // نتأكد أن الأعمدة موجودة.
+        await db.query(`
+            ALTER TABLE weekly_schedule
+            ADD COLUMN IF NOT EXISTS subject_id INTEGER;
+        `);
+
+        await db.query(`
+            ALTER TABLE weekly_schedule
+            ADD COLUMN IF NOT EXISTS day_of_week VARCHAR(20);
+        `);
+
+        await db.query(`
+            ALTER TABLE weekly_schedule
+            ADD COLUMN IF NOT EXISTS start_time TIME;
+        `);
+
+        await db.query(`
+            ALTER TABLE weekly_schedule
+            ADD COLUMN IF NOT EXISTS end_time TIME;
+        `);
+
+        await db.query(`
+            ALTER TABLE weekly_schedule
+            ADD COLUMN IF NOT EXISTS room VARCHAR(255);
+        `);
+
+        await db.query(`
+            ALTER TABLE weekly_schedule
+            ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+        `);
+
+        // =========================
         // NOTIFICATIONS
         // =========================
         await db.query(`
@@ -162,7 +211,6 @@ async function initDb() {
             );
         `);
 
-        // العمود الذي سبب الخطأ عندك
         await db.query(`
             ALTER TABLE notifications
             ADD COLUMN IF NOT EXISTS lecture_id INTEGER;
@@ -274,6 +322,7 @@ async function initDb() {
         console.log("Lectures table ready.");
         console.log("Exams table ready.");
         console.log("Enrollments table ready.");
+        console.log("Weekly schedule table ready.");
         console.log("Notifications table ready.");
         console.log("Personal student data structure ready.");
         console.log("======================================");
@@ -293,8 +342,10 @@ app.use("/students", studentsRouter);
 app.use("/subjects", subjectsRouter);
 app.use("/lectures", lecturesRouter);
 app.use("/enrollments", enrollmentsRouter);
+app.use("/weekly-schedule", weeklyScheduleRouter);
 app.use("/exams", examsRouter);
 app.use("/notifications", notificationsRouter);
+app.use("/push-subscriptions", pushSubscriptionsRouter);
 
 // =========================
 // HOME
@@ -313,3 +364,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", function () {
     console.log(`Mirqah is running on port ${PORT}`);
 });
+    
